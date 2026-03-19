@@ -1,12 +1,16 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, X, Upload } from "../../lib/icons.js";
+import { notify } from "../../lib/notifications.js";
 
 export default function ProductForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = !!id;
-
+const handleSave = () => {
+  notify.productSaved(form.name);
+  navigate("/products");
+};
   const [form, setForm] = useState({
     name: isEdit ? "Air Force 1 Low" : "",
     sku: isEdit ? "AF1-001" : "",
@@ -44,7 +48,7 @@ export default function ProductForm() {
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary" onClick={() => navigate("/products")}>Cancel</button>
-          <button className="btn-primary">Save Product</button>
+          <button className="btn-primary"onClick={handleSave}>Save Product</button>
         </div>
       </div>
 

@@ -134,3 +134,19 @@ export const shipments = [
   { id: "SHP-005", order: "#ORD-1038", carrier: "Servientrega", customer: "Sofia López", tracking: "SRV2026001038", status: "pending", city: "Bucaramanga", date: "Mar 12, 2026", eta: "Mar 17, 2026" },
   { id: "SHP-006", order: "#ORD-1037", carrier: "TCC", customer: "Miguel Torres", tracking: "TCC2026001037", status: "failed", city: "Pereira", date: "Mar 12, 2026", eta: "Mar 15, 2026" },
 ];
+
+export const shippingAnalytics = {
+  byMonth: [
+    { month: "Oct", bogota: 28, medellin: 12, cali: 8,  barranquilla: 5, otros: 4 },
+    { month: "Nov", bogota: 35, medellin: 15, cali: 11, barranquilla: 7, otros: 6 },
+    { month: "Dic", bogota: 52, medellin: 22, cali: 16, barranquilla: 10, otros: 9 },
+    { month: "Ene", bogota: 31, medellin: 14, cali: 9,  barranquilla: 6, otros: 5 },
+    { month: "Feb", bogota: 38, medellin: 18, cali: 13, barranquilla: 8, otros: 7 },
+    { month: "Mar", bogota: 48, medellin: 22, cali: 18, barranquilla: 12, otros: 10 },
+  ],
+  byCarrier: [
+    { carrier: "Servientrega", entregas: 89, enTransito: 12, fallidos: 3 },
+    { carrier: "Coordinadora", entregas: 54, enTransito: 8,  fallidos: 1 },
+    { carrier: "TCC",          entregas: 21, enTransito: 3,  fallidos: 2 },
+  ],
+};

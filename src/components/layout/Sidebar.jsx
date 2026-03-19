@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Users,
   Ticket, FileText, Image, Settings, ChevronDown,
-  Zap, LogOut, Store, Receipt, Truck, MessageSquare, StickyNote, SlidersHorizontal,
+  Zap, LogOut, Store, Receipt, Truck, MessageSquare, StickyNote, SlidersHorizontal, CalendarDays, BarChart2,
 } from "../../lib/icons.js";
 import { useState } from "react";
 import clsx from "clsx";
@@ -24,6 +24,7 @@ const NAV = [
       { label: "Envíos", icon: Truck, to: "/shipping" },
     ],
   },
+  { label: "Reportes", icon: BarChart2, to: "/reports" },
   { label: "Clientes", icon: Users, to: "/customers" },
   { label: "Cupones", icon: Ticket, to: "/coupons" },
   {
@@ -31,6 +32,7 @@ const NAV = [
     children: [
       { label: "Páginas", icon: StickyNote, to: "/pages" },
       { label: "Multimedia", icon: Image, to: "/media" },
+      { label: "Calendario",  icon: CalendarDays, to: "/calendar" },
     ],
   },
   { label: "Soporte", icon: MessageSquare, to: "/tickets" },
@@ -39,6 +41,7 @@ const NAV = [
     children: [
       { label: "General", icon: SlidersHorizontal, to: "/settings" },
       { label: "Transportista", icon: Truck, to: "/settings/transportation" },
+      { label: "Equipo", icon: Users, to: "/settings/team" },
     ],
   },
 ];

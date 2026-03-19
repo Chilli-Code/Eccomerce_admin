@@ -144,6 +144,12 @@ export default function CmsPages() {
           </div>
         ))}
       </div>
+              <div>
+          <h1 className="page-title">Widyect</h1>
+          <p className="text-sm text-gray-400 mt-0.5">Gestiona el contenido de tu tienda</p>
+        </div>
     </div>
+
+    
   );
 }

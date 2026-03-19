@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { Link } from "react-router-dom";
+import { shipments } from "../../data/mock.js";
+
 
 const CITIES = [
   { name: "Bogotá", coords: [-74.0721, 4.7110], sales: 4823, pct: 38.2, color: "#3730a3" },
@@ -20,7 +23,6 @@ const STATUS_FILTERS = [
 ];
 
 // shipments mock local para el mapa
-import { shipments } from "../../data/mock.js";
 
 export default function CustomerMap({ showFilters = false, size = "default" }) {
 
@@ -135,6 +137,9 @@ export default function CustomerMap({ showFilters = false, size = "default" }) {
         <div>
           <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Envíos por ciudad</h2>
           <p className="text-xs text-gray-400">Distribución de pedidos en Colombia</p>
+        </div>
+        <div className="flex items-center justify-between mb-4">
+            <Link to="/shipping" className="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</Link>
         </div>
       </div>
 

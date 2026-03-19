@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, Package, Eye } from "../../lib/icons.js";
+import { Plus, Edit2, Trash2, Package, Eye, Tag, AlertCircle, FileText  } from "../../lib/icons.js";
 import { Link } from "react-router-dom";
 import { allProducts } from "../../data/mock.js";
 import { StatusBadge, SearchInput, Pagination, Modal } from "../../components/ui/index.jsx";
@@ -71,6 +71,8 @@ export default function Products() {
 
   return (
     <div className="space-y-5">
+
+      
       <div className="page-header">
         <div>
           <h1 className="page-title">Products</h1>
@@ -80,6 +82,54 @@ export default function Products() {
           <Plus size={16} /> Add Product
         </Link>
       </div>
+      {/* Stat cards */}
+<div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+  {[
+    {
+      label: "Total productos",
+      value: allProducts.length,
+      sub: `${allProducts.filter(p => p.status === "active").length} activos`,
+      color: "text-primary-600 dark:text-primary-400",
+      bg: "bg-primary-50 dark:bg-primary-900/30",
+      icon: Package,
+    },
+    {
+      label: "Categorías",
+      value: [...new Set(allProducts.map(p => p.category))].length,
+      sub: "categorías distintas",
+      color: "text-emerald-600 dark:text-emerald-400",
+      bg: "bg-emerald-50 dark:bg-emerald-900/20",
+      icon: Tag,
+    },
+    {
+      label: "Sin stock",
+      value: allProducts.filter(p => p.stock === 0).length,
+      sub: "requieren restock",
+      color: "text-red-500",
+      bg: "bg-red-50 dark:bg-red-900/20",
+      icon: AlertCircle,
+    },
+    {
+      label: "Borradores",
+      value: allProducts.filter(p => p.status === "draft").length,
+      sub: "sin publicar",
+      color: "text-amber-500",
+      bg: "bg-amber-50 dark:bg-amber-900/20",
+      icon: FileText,
+    },
+  ].map(s => (
+    <div key={s.label} className="card px-4 py-3 flex items-center gap-3">
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${s.bg}`}>
+        <s.icon size={16} className={s.color} />
+      </div>
+      <div>
+        <p className="text-xs text-gray-400">{s.label}</p>
+        <p className={`text-xl font-semibold ${s.color}`}>{s.value}</p>
+        <p className="text-[11px] text-gray-400">{s.sub}</p>
+      </div>
+    </div>
+  ))}
+</div>
 
       {selected.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl">

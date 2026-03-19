@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Users, Eye, UserX } from "../../lib/icons.js";
 import { allCustomers } from "../../data/mock.js";
 import { StatusBadge, SearchInput, Pagination, Modal } from "../../components/ui/index.jsx";
+import { useNavigate } from "react-router-dom";
 
 export default function Customers() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState(null);
   const PER_PAGE = 6;
+  const navigate = useNavigate();
 
   const filtered = allCustomers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -62,7 +64,7 @@ export default function Customers() {
                   <td className="text-xs text-gray-400">{c.joined}</td>
                   <td><StatusBadge status={c.status} /></td>
                   <td>
-                    <button onClick={() => setSelected(c)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600">
+                    <button onClick={() => navigate(`/customers/${c.id}`)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600">
                       <Eye size={14} />
                     </button>
                   </td>

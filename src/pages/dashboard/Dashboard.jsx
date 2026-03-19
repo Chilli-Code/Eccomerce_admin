@@ -96,7 +96,6 @@ export default function Dashboard() {
       <StatisticsChart />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        <CustomerMap />
         <div className="card p-5">
           <h2 className="text-sm font-semibold text-gray-800 dark:text-white mb-1">Order Status</h2>
           <p className="text-xs text-gray-400 mb-4">Distribution this month</p>
@@ -122,6 +121,7 @@ export default function Dashboard() {
             ))}
           </div>
         </div>
+        <CustomerMap />
 
       </div>
       {/* Row 3: Customer demographic map + Recent Orders */}

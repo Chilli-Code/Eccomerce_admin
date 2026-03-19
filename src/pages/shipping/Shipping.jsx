@@ -1,16 +1,17 @@
 import { useState } from "react";
-import { ExternalLink, Truck, Package, CheckCircle, XCircle, Clock, MapPin } from "../../lib/icons.js";
+import { ExternalLink, Truck, Package, CheckCircle, XCircle, Clock, MapPin, TrendingUp } from "../../lib/icons.js";
 import { shipments, carriers } from "../../data/mock.js";
 import { SearchInput, Pagination } from "../../components/ui/index.jsx";
 import clsx from "clsx";
 import CustomerMap from "../../components/charts/CustomerMap.jsx";
+import ShippingAnalytics from "./ShippingAnalytics.jsx";
 
 const STATUS_CONFIG = {
-  pending:    { label: "Pending",    icon: Clock,       color: "text-amber-500",  bg: "bg-amber-50 dark:bg-amber-900/20" },
-  picked_up:  { label: "Picked up", icon: Package,     color: "text-blue-500",   bg: "bg-blue-50 dark:bg-blue-900/20" },
-  in_transit: { label: "In transit",icon: Truck,       color: "text-primary-600 dark:text-primary-400", bg: "bg-primary-50 dark:bg-primary-900/20" },
-  delivered:  { label: "Delivered", icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-  failed:     { label: "Failed",    icon: XCircle,     color: "text-red-500",    bg: "bg-red-50 dark:bg-red-900/20" },
+  pending: { label: "Pending", icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+  picked_up: { label: "Picked up", icon: Package, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-900/20" },
+  in_transit: { label: "In transit", icon: Truck, color: "text-primary-600 dark:text-primary-400", bg: "bg-primary-50 dark:bg-primary-900/20" },
+  delivered: { label: "Delivered", icon: CheckCircle, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+  failed: { label: "Failed", icon: XCircle, color: "text-red-500", bg: "bg-red-50 dark:bg-red-900/20" },
 };
 
 const TABS = ["All", "Pending", "Picked up", "In transit", "Delivered", "Failed"];
@@ -90,12 +91,12 @@ export default function Shipping() {
                   : "border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-400"
               )}
             >
-                          <img
-              src={c.logo}
-              alt={c.name}
-              className="w-8 h-8 object-contain rounded-lg bg-white p-1 border border-gray-100 dark:border-gray-800"
-              onError={e => { e.target.style.display = "none"; }}
-            />
+              <img
+                src={c.logo}
+                alt={c.name}
+                className="w-8 h-8 object-contain rounded-lg bg-white p-1 border border-gray-100 dark:border-gray-800"
+                onError={e => { e.target.style.display = "none"; }}
+              />
               <span>{c.name}</span>
               {c.active && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-0.5" />}
             </div>
@@ -108,11 +109,10 @@ export default function Shipping() {
         <div className="flex gap-1 px-5 pt-4 border-b border-gray-100 dark:border-gray-800 overflow-x-auto overflow-y-hidden">
           {TABS.map(t => (
             <button key={t} onClick={() => { setTab(t); setPage(1); }}
-              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${
-                tab === t
+              className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap ${tab === t
                   ? "border-primary-600 text-primary-600 dark:text-primary-400"
                   : "border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-              }`}
+                }`}
             >{t}</button>
           ))}
         </div>
@@ -148,16 +148,16 @@ export default function Shipping() {
                     <td className="text-sm text-gray-700 dark:text-gray-300">{s.customer}</td>
                     <td>
                       <span className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                                    <img
-              src={carrier.logo}
-              alt={carrier.name}
-              className="w-8 h-8 object-contain rounded-lg bg-white p-1 border border-gray-100 dark:border-gray-800"
-              onError={e => { e.target.style.display = "none"; }}
-            /> {s.carrier}
+                        <img
+                          src={carrier.logo}
+                          alt={carrier.name}
+                          className="w-8 h-8 object-contain rounded-lg bg-white p-1 border border-gray-100 dark:border-gray-800"
+                          onError={e => { e.target.style.display = "none"; }}
+                        /> {s.carrier}
                       </span>
                     </td>
                     <td>
-                      <a 
+                      <a
                         href={trackingUrl}
                         target="_blank"
                         rel="noopener noreferrer"
@@ -194,7 +194,12 @@ export default function Shipping() {
         <Pagination page={page} total={filtered.length} perPage={PER_PAGE} onChange={setPage} />
       </div>
       <CustomerMap showFilters size="lg" />
-      
+      <div className="flex items-center gap-2 pt-2">
+        <TrendingUp size={18} className="text-primary-600 dark:text-primary-400" />
+        <h2 className="text-base font-semibold text-gray-800 dark:text-white">Análisis de envíos</h2>
+        <span className="badge badge-blue ml-1">Últimos 6 meses</span>
+      </div>
+      <ShippingAnalytics />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Store, Globe, CreditCard, Bell, Shield, Palette, Truck, Languages } from "../../lib/icons.js";
+import { Store, Globe, CreditCard, Bell, Shield, Palette, Truck, Languages, Crown } from "../../lib/icons.js";
 
 import clsx from "clsx";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ const TABS = [
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "security", label: "Security", icon: Shield },
   { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "billing", label: "Plan & Billing", icon: Crown },
 
 ];
 
@@ -166,6 +167,218 @@ function AppearanceTab() {
   );
 }
 
+function BillingTab() {
+  const currentPlan = "pro"; // vendría del backend
+  const nextBilling = "2026-04-18";
+  const daysLeft = Math.ceil((new Date(nextBilling) - new Date()) / (1000 * 60 * 60 * 24));
+
+  const PLANS = [
+    {
+      id: "starter",
+      name: "Starter",
+      price: 29,
+      color: "border-gray-200 dark:border-gray-700",
+      badge: null,
+      features: [
+        "Hasta 100 productos",
+        "1 usuario admin",
+        "Reportes básicos",
+        "Soporte por email",
+        "Dominio personalizado",
+      ],
+    },
+    {
+      id: "pro",
+      name: "Pro",
+      price: 79,
+      color: "border-primary-500",
+      badge: "Tu plan actual",
+      features: [
+        "Hasta 1,000 productos",
+        "3 usuarios admin",
+        "Reportes avanzados",
+        "Soporte prioritario",
+        "Dominio personalizado",
+        "Editor de páginas CMS",
+        "Cupones y descuentos",
+      ],
+    },
+    {
+      id: "enterprise",
+      name: "Enterprise",
+      price: 199,
+      color: "border-purple-400",
+      badge: "Recomendado",
+      features: [
+        "Productos ilimitados",
+        "Usuarios ilimitados",
+        "Reportes + exportación",
+        "Soporte 24/7",
+        "Dominio personalizado",
+        "Editor de páginas CMS",
+        "Cupones y descuentos",
+        "API acceso completo",
+        "Multi-tienda",
+        "Manager de cuenta dedicado",
+      ],
+    },
+  ];
+
+  const INVOICES = [
+    { id: "INV-001", date: "2026-03-18", amount: 79, status: "paid" },
+    { id: "INV-002", date: "2026-02-18", amount: 79, status: "paid" },
+    { id: "INV-003", date: "2026-01-18", amount: 79, status: "paid" },
+    { id: "INV-004", date: "2025-12-18", amount: 29, status: "paid" },
+  ];
+
+  return (
+    <div className="space-y-6">
+
+      {/* Banner plan actual + próximo cobro */}
+      <div className="rounded-xl bg-gradient-to-r from-primary-600 to-purple-600 p-5 text-white">
+        <div className="flex items-start justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide opacity-80 mb-1">Plan actual</p>
+            <h3 className="text-2xl font-bold mb-1">Pro — $79/mes</h3>
+            <p className="text-sm opacity-80">Próximo cobro el {new Date(nextBilling + "T12:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })}</p>
+          </div>
+          <div className="text-right">
+            <div className="bg-white/20 rounded-xl px-4 py-3 text-center">
+              <p className="text-3xl font-bold">{daysLeft}</p>
+              <p className="text-xs opacity-80">días restantes</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Barra de progreso del ciclo */}
+        <div className="mt-4">
+          <div className="flex justify-between text-xs opacity-70 mb-1">
+            <span>Ciclo actual (Mar 18 → Abr 18)</span>
+            <span>{30 - daysLeft} de 30 días</span>
+          </div>
+          <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-white rounded-full transition-all"
+              style={{ width: `${((30 - daysLeft) / 30) * 100}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Planes */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">Planes disponibles</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {PLANS.map(plan => (
+            <div
+              key={plan.id}
+              className={clsx(
+                "rounded-xl border-2 p-5 relative transition-all",
+                plan.id === currentPlan
+                  ? "border-primary-500 bg-primary-50 dark:bg-primary-900/10"
+                  : "border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900"
+              )}
+            >
+              {plan.badge && (
+                <span className={clsx(
+                  "absolute -top-3 left-1/2 -translate-x-1/2 text-[11px] font-semibold px-3 py-1 rounded-full whitespace-nowrap",
+                  plan.id === currentPlan
+                    ? "bg-primary-600 text-white"
+                    : "bg-purple-600 text-white"
+                )}>
+                  {plan.badge}
+                </span>
+              )}
+
+              <p className="text-sm font-semibold text-gray-800 dark:text-white mb-1">{plan.name}</p>
+              <div className="flex items-end gap-1 mb-4">
+                <span className="text-3xl font-bold text-gray-900 dark:text-white">${plan.price}</span>
+                <span className="text-xs text-gray-400 mb-1">/mes</span>
+              </div>
+
+              <ul className="space-y-2 mb-5">
+                {plan.features.map(f => (
+                  <li key={f} className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
+                    <span className="text-emerald-500 flex-shrink-0 mt-0.5">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+
+              <button
+                className={clsx(
+                  "w-full py-2 rounded-lg text-sm font-medium transition-colors",
+                  plan.id === currentPlan
+                    ? "bg-primary-600 text-white cursor-default"
+                    : plan.id === "enterprise"
+                    ? "bg-purple-600 text-white hover:bg-purple-700"
+                    : "border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                )}
+                disabled={plan.id === currentPlan}
+              >
+                {plan.id === currentPlan ? "Plan actual" : plan.id === "enterprise" ? "Contactar ventas" : "Cambiar plan"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Método de pago */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">Método de pago</h3>
+        <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-gray-800 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-7 bg-gray-800 rounded-md flex items-center justify-center">
+              <span className="text-white text-[10px] font-bold">VISA</span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Visa terminada en 4242</p>
+              <p className="text-xs text-gray-400">Vence 12/2028</p>
+            </div>
+          </div>
+          <button className="btn-secondary text-xs py-1.5">Cambiar tarjeta</button>
+        </div>
+      </div>
+
+      {/* Historial de facturas */}
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-3">Historial de pagos</h3>
+        <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden">
+          <table className="table-base">
+            <thead>
+              <tr>
+                <th>Factura</th>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {INVOICES.map(inv => (
+                <tr key={inv.id}>
+                  <td className="font-mono text-xs text-gray-500">{inv.id}</td>
+                  <td className="text-sm text-gray-600 dark:text-gray-400">
+                    {new Date(inv.date + "T12:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" })}
+                  </td>
+                  <td className="font-semibold">${inv.amount}</td>
+                  <td><span className="badge badge-green">Pagado</span></td>
+                  <td>
+                    <button className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                      Descargar PDF
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 const TAB_CONTENT = {
   general: GeneralTab,
   store: GeneralTab,
@@ -173,6 +386,7 @@ const TAB_CONTENT = {
   notifications: NotificationsTab,
   security: SecurityTab,
   appearance: AppearanceTab,
+  billing: BillingTab,
 
 };
 

@@ -6,6 +6,15 @@ export {
   User,
   Grid,
   List,
+  CalendarDays,
+  BarChart2,
+  Crown,
+  Target,
+  Check,
+  Mail,
+  Phone,
+
+
 
   // Catalog
   Package,
