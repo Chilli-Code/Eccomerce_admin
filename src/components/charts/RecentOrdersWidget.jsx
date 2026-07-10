@@ -1,13 +1,18 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { SlidersHorizontal } from "../../lib/icons.js";
-import { allOrders } from "../../data/mock.js";
 import { StatusBadge } from "../ui/index.jsx";
 
-export default function RecentOrdersWidget() {
+function formatDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+export default function RecentOrdersWidget({ orders = [] }) {
   const [filter, setFilter] = useState("all");
 
-  const filtered = allOrders
+  const filtered = orders
     .filter(o => filter === "all" || o.status === filter)
     .slice(0, 5);
 
@@ -16,7 +21,6 @@ export default function RecentOrdersWidget() {
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
         <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Recent Orders</h2>
         <div className="flex items-center gap-2">
-          {/* Filter dropdown */}
           <div className="relative">
             <select
               value={filter}
@@ -41,7 +45,6 @@ export default function RecentOrdersWidget() {
         <thead>
           <tr>
             <th>Order</th>
-            <th>Customer</th>
             <th>Total</th>
             <th>Status</th>
             <th>Date</th>
@@ -51,21 +54,13 @@ export default function RecentOrdersWidget() {
           {filtered.map(o => (
             <tr key={o.id}>
               <td>
-                <Link to={`/orders/${o.id.replace("#","")}`} className="font-mono text-xs text-primary-600 dark:text-primary-400 hover:underline">
-                  {o.id}
+                <Link to={`/orders/${o.id}`} className="font-mono text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                  {o.id?.slice(0, 8)}...
                 </Link>
               </td>
-              <td>
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 text-[10px] font-semibold flex-shrink-0">
-                    {o.customer.split(" ").map(n => n[0]).join("")}
-                  </div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">{o.customer}</span>
-                </div>
-              </td>
-              <td className="font-semibold text-gray-800 dark:text-gray-200">${o.total.toFixed(2)}</td>
+              <td className="font-semibold text-gray-800 dark:text-gray-200">${Number(o.total).toFixed(2)}</td>
               <td><StatusBadge status={o.status} /></td>
-              <td className="text-xs text-gray-400">{o.date}</td>
+              <td className="text-xs text-gray-400">{formatDate(o.createdAt)}</td>
             </tr>
           ))}
         </tbody>

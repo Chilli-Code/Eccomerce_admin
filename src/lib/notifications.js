@@ -13,10 +13,8 @@ export const notify = {
   orderCancelled: (id) => sileo.warning({ title: "Orden cancelada", description: `${id} fue cancelada` }),
 
   // Productos
-  productSaved: (name) => sileo.success({ title: "Producto guardado", description: `"${name}" actualizado correctamente`,     styles: {
-      title: "text-green-500",
-      description: "text-gray-400",
-    }, }),
+  productSaved: (name) => sileo.success({ title: "Producto guardado", description: `${name.toUpperCase()} Actualizado Correctamente`, 
+  }),
   productDeleted: (name) => sileo.warning({ title: "Producto eliminado", description: `"${name}" fue eliminado` }),
   productOutStock: (name) => sileo.error({ title: "Sin stock", description: `"${name}" se quedó sin inventario`, duration: null }),
   productLowStock: (name, stock) => sileo.warning({ title: "Stock bajo", description: `"${name}" solo tiene ${stock} unidades` }),
@@ -49,8 +47,9 @@ export const notify = {
   planUpgraded: (plan) => sileo.success({ title: "Plan actualizado", description: `Ahora estás en el plan ${plan}` }),
 
   // Equipo
+  configGeneralSaved: () => sileo.success({ title: "Configuracion Aplicada", description: `Se ha aplicado la configuración a tu cuenta` }),
   memberInvited: (email) => sileo.success({ title: "Invitación enviada", description: `Se envió un correo a ${email}` }),
-  memberUpdated: (name) => sileo.success({ title: "Miembro actualizado", description: `${name} fue actualizado correctamente` }),
+  memberUpdated: (name) => sileo.success({ title: "Miembro actualizado", description: `${name} fue Actualizado correctamente` }),
   memberRemoved: (name) => sileo.warning({ title: "Miembro eliminado", description: `${name} ya no tiene acceso al panel` }),
 
   // Reportes
@@ -77,4 +76,22 @@ export const notify = {
       success: { title: success || "Listo" },
       error: { title: error || "Error al procesar" },
     }),
+
+
+  success: (message, title = "Éxito") => {
+    sileo.success({ title, description: message });
+  },
+  
+  // También agrega info si no existe
+  info: (message, title = "Información") => {
+    sileo.info({ title, description: message });
+  },
+  
+  warning: (message, title = "Advertencia") => {
+    sileo.warning({ title, description: message });
+  },
+  
+  error: (message, title = "Error") => {
+    sileo.error({ title, description: message || "Algo salió mal" });
+  },
 };

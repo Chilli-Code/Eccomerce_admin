@@ -4,8 +4,8 @@ import {
   BarChart, Bar, LineChart, Line, FunnelChart, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis,
-} from "recharts";
-import { Download, TrendingUp, TrendingDown, Users, ShoppingBag, CreditCard, Tag, Package, BarChart2, Trash2   } from "lucide-react";
+} from "../../lib/charts.js";
+import { Download, TrendingUp, TrendingDown, Users, ShoppingBag, CreditCard, Tag, Package, BarChart2, Trash2   } from "../../lib/icons.js";
 
 // ── Mock data exclusivo para reportes (no repetido en otros módulos) ──
 

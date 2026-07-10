@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Package, Tag, ShoppingCart, Users,
   Ticket, FileText, Image, Settings, ChevronDown,
-  Zap, LogOut, Store, Receipt, Truck, MessageSquare, StickyNote, SlidersHorizontal, CalendarDays, BarChart2,
+  Zap, LogOut, Store, Receipt, Truck, MessageSquare, StickyNote, SlidersHorizontal, CalendarDays, BarChart2, MapPin,
 } from "../../lib/icons.js";
 import { useState } from "react";
 import clsx from "clsx";
@@ -22,6 +22,7 @@ const NAV = [
     children: [
       { label: "Órdenes", icon: ShoppingCart, to: "/orders" },
       { label: "Envíos", icon: Truck, to: "/shipping" },
+      { label: "Mapa", icon: MapPin, to: "/map" },
     ],
   },
   { label: "Reportes", icon: BarChart2, to: "/reports" },
@@ -90,10 +91,12 @@ function NavGroup({ item }) {
 }
 
 export default function Sidebar({ open, onLogout }) {
+  const user = JSON.parse(localStorage.getItem("admin_user") || "{}");
+  const initials = user.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "A";
   return (
     <aside
       className={clsx(
-        "fixed left-0 top-0 h-screen flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-transform duration-300 z-30",
+        "fixed left-0 top-0 h-dvh flex flex-col bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-gray-800 transition-transform duration-300 z-30",
         open ? "translate-x-0" : "-translate-x-full"
       )}
       style={{ width: "var(--sidebar-width)" }}
@@ -146,10 +149,10 @@ export default function Sidebar({ open, onLogout }) {
       {/* Bottom */}
       <div className="px-3 py-4 border-t border-gray-100 dark:border-gray-800">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-          <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">S</div>
+          <div className="w-7 h-7 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-semibold">{initials}</div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-800 dark:text-gray-200">Super Admin</div>
-            <div className="text-[10px] text-gray-400 truncate">admin@mystore.com</div>
+            <div className="text-xs font-medium text-gray-800 dark:text-gray-200">{user.name || "Admin"}</div>
+            <div className="text-[10px] text-gray-400 truncate">{user.email || ""}</div>
           </div>
           <button onClick={onLogout} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
             <LogOut size={14} />

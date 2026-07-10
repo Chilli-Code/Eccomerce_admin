@@ -13,9 +13,11 @@ export {
   Check,
   Mail,
   Phone,
-
-
-
+  Percent,
+  Heart,
+  Layout,
+  MessageCircle,
+  Calendar,
   // Catalog
   Package,
   Tag,
@@ -95,11 +97,16 @@ export {
   // Undo/Redo
   Undo2,
   Redo2,
+  Flag,
 
   // Shipping
   CheckCircle2,
   PackageCheck,
 
+  ChevronLeft,
+  ChevronRight,
+  ShoppingBag,
+  TrendingDown,
   // Misc
   Menu,
   Sun,

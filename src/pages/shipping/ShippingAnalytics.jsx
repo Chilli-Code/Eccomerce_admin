@@ -1,7 +1,7 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, LineChart, Line
-} from "recharts";
+} from "../../lib/charts.js";
 import { shippingAnalytics } from "../../data/mock.js";
 import { TrendingUp, Truck, CheckCircle, XCircle } from "../../lib/icons.js";
 

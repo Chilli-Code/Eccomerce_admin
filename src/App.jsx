@@ -25,30 +25,66 @@ import Calendar from "./pages/calendar/Calendar.jsx";
 import ProductStats from "./pages/products/ProductStats.jsx";
 import CustomerDetail from "./pages/customers/CustomerDetail.jsx";
 import Reports from "./pages/reports/Reports.jsx";
+import MapView from "./pages/map/MapView.jsx";
 import Team from "./pages/settings/Team.jsx";
 import TeamMember from "./pages/settings/TeamMember.jsx";
+import { applyColor } from "./lib/utils.js";
 
 const CmsPages = lazy(() => import("./pages/cms/CmsPages.jsx"));
+import TicketForm from "./pages/tickets/TicketForm.jsx";
 
 
 function App() {
-  const [dark, setDark] = useState(() =>
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-  );
-  const [auth, setAuth] = useState(() => !!localStorage.getItem("admin_token"));
+  
+const [dark, setDark] = useState(() => {
+  const saved = localStorage.getItem("dark_mode");
+  if (saved !== null) return JSON.parse(saved);
 
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+});
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", dark);
-  }, [dark]);
+    const saved = localStorage.getItem("primary_color");
+    if (saved) applyColor(saved);
+  }, []);
 
-  if (!auth) {
-    return <Login onLogin={() => setAuth(true)} />;
-  }
+
+  const [auth, setAuth] = useState(() => !!localStorage.getItem("admin_token"));
+const [user, setUser] = useState(() => {
+  const saved = localStorage.getItem("admin_user");
+  return saved ? JSON.parse(saved) : null;
+});
+
+useEffect(() => {
+  document.documentElement.classList.toggle("dark", dark);
+  localStorage.setItem("dark_mode", JSON.stringify(dark));
+}, [dark]);
+
+if (!auth) {
+  return <Login onLogin={(userData) => {
+    setAuth(true);
+    setUser(userData);
+  }} />;
+}
 
   return (
     <>
-      <Toaster position="bottom-center" />
-    <Layout dark={dark} onToggleDark={() => setDark(!dark)} onLogout={() => { localStorage.removeItem("admin_token"); setAuth(false); }}>
+      <Toaster
+  position="top-center"
+  theme={dark ? "light" : "dark"} 
+  options={dark ? {
+    styles: { description: "text-gray-400 text-center font-bold" },
+  } : undefined}
+/>
+    <Layout 
+    dark={dark} 
+    onToggleDark={() => setDark(!dark)} 
+    onLogout={() => {
+  localStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_user");
+  setAuth(false);
+  setUser(null);
+  
+}}>
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -70,6 +106,7 @@ function App() {
           <Route path="/tickets" element={<Tickets />} />
           <Route path="/tickets/:id" element={<TicketDetail />} />
           <Route path="/shipping" element={<Shipping />} />
+          <Route path="/map" element={<MapView />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/settings/team" element={<Team />} />
           <Route path="/settings/team/:id" element={<TeamMember />} />
@@ -78,6 +115,7 @@ function App() {
           <Route path="/products/:id/stats" element={<ProductStats />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/customers/:id" element={<CustomerDetail />} />
+          <Route path="/tickets/new" element={<TicketForm />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Suspense>

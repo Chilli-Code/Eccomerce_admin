@@ -4,7 +4,7 @@ import clsx from "clsx";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell
-} from "recharts";
+} from "../../lib/charts.js";
 
 // Mock members (mismo que Team.jsx — cuando tengas backend viene de API)
 const MEMBERS = [

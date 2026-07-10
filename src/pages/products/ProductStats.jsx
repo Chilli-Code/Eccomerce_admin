@@ -5,7 +5,7 @@ import { StatusBadge } from "../../components/ui/index.jsx";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell
-} from "recharts";
+} from "../../lib/charts.js";
 
 const MONTHLY_SALES = [
   { month: "Sep", units: 8,  revenue: 3192 },

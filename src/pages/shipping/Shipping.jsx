@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ExternalLink, Truck, Package, CheckCircle, XCircle, Clock, MapPin, TrendingUp } from "../../lib/icons.js";
 import { shipments, carriers } from "../../data/mock.js";
 import { SearchInput, Pagination } from "../../components/ui/index.jsx";
 import clsx from "clsx";
 import CustomerMap from "../../components/charts/CustomerMap.jsx";
 import ShippingAnalytics from "./ShippingAnalytics.jsx";
+import { api } from "../../lib/api.js";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", icon: Clock, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
@@ -33,6 +34,13 @@ export default function Shipping() {
   const [tab, setTab] = useState("All");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [geoData, setGeoData] = useState(null);
+
+  useEffect(() => {
+    api.reports.geo()
+      .then(setGeoData)
+      .catch(() => setGeoData([]));
+  }, []);
 
   const tabKey = tab.toLowerCase().replace(" ", "_");
 
@@ -193,7 +201,7 @@ export default function Shipping() {
 
         <Pagination page={page} total={filtered.length} perPage={PER_PAGE} onChange={setPage} />
       </div>
-      <CustomerMap showFilters size="lg" />
+      <CustomerMap showFilters size="lg" cities={geoData || []} />
       <div className="flex items-center gap-2 pt-2">
         <TrendingUp size={18} className="text-primary-600 dark:text-primary-400" />
         <h2 className="text-base font-semibold text-gray-800 dark:text-white">Análisis de envíos</h2>

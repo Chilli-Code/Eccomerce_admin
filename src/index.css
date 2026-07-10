@@ -5,8 +5,75 @@
 @layer base {
   :root {
     --sidebar-width: 260px;
+  --color-primary-50:  238 242 255;
+  --color-primary-100: 224 231 255;
+  --color-primary-200: 199 210 254;
+  --color-primary-400: 129 140 248;
+  --color-primary-500: 99 102 241;
+  --color-primary-600: 79 70 229;
+  --color-primary-700: 67 56 202;
+  --color-primary-800: 55 48 163;
+  --color-primary-900: 49 46 129;
   }
+/* Botones */
+.btn-primary {
+  background-color: rgb(var(--color-primary-600)) !important;
+  color: white !important;
+}
+.btn-primary:hover {
+  background-color: rgb(var(--color-primary-700)) !important;
+}
 
+/* Nav activo */
+.nav-link.active {
+  background-color: rgb(var(--color-primary-50)) !important;
+  color: rgb(var(--color-primary-600)) !important;
+}
+.dark .nav-link.active {
+  background-color: rgb(var(--color-primary-900) / 0.3) !important;
+  color: rgb(var(--color-primary-400)) !important;
+}
+
+/* Badges primary */
+.badge-primary {
+  background-color: rgb(var(--color-primary-100)) !important;
+  color: rgb(var(--color-primary-700)) !important;
+}
+
+/* Focus rings */
+.input:focus {
+  border-color: rgb(var(--color-primary-500)) !important;
+  ring-color: rgb(var(--color-primary-500)) !important;
+}
+
+/* Checkboxes accent */
+input[type="checkbox"].accent-primary-600,
+input[type="radio"] {
+  accent-color: rgb(var(--color-primary-600)) !important;
+}
+
+/* Tabs activos */
+.border-primary-600 {
+  border-color: rgb(var(--color-primary-600)) !important;
+}
+.text-primary-600 {
+  color: rgb(var(--color-primary-600)) !important;
+}
+.text-primary-400 {
+  color: rgb(var(--color-primary-400)) !important;
+}
+.bg-primary-600 {
+  background-color: rgb(var(--color-primary-600)) !important;
+}
+.bg-primary-50 {
+  background-color: rgb(var(--color-primary-50)) !important;
+}
+.bg-primary-900\/30 {
+  background-color: rgb(var(--color-primary-900) / 0.3) !important;
+}
+.nav-link.active .dark {
+  background-color: rgb(var(--color-primary-900) / 0.3) !important;
+}
   * { box-sizing: border-box; }
 
   body {
@@ -108,4 +175,77 @@ background-color: #2f2f2ff0 !important;
   .nav-link.active {
     @apply bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400;
   }
+}
+
+/* Estilos mejorados para el editor */
+.ProseMirror {
+  @apply outline-none min-h-[250px];
+}
+
+.ProseMirror p {
+  @apply mb-3;
+}
+
+.ProseMirror h1 {
+  @apply text-2xl font-bold mb-4 mt-2;
+}
+
+.ProseMirror h2 {
+  @apply text-xl font-semibold mb-3 mt-2;
+}
+
+.ProseMirror ul, 
+.ProseMirror ol {
+  @apply pl-5 mb-3;
+}
+
+.ProseMirror ul {
+  @apply list-disc;
+}
+
+.ProseMirror ol {
+  @apply list-decimal;
+}
+
+.ProseMirror li {
+  @apply mb-1;
+}
+
+.ProseMirror blockquote {
+  @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-3;
+}
+
+.ProseMirror code {
+  @apply bg-gray-100 dark:bg-gray-800 rounded px-1 py-0.5 text-sm font-mono;
+}
+
+.ProseMirror pre {
+  @apply bg-gray-100 dark:bg-gray-800 rounded p-3 my-3 overflow-x-auto;
+}
+
+.ProseMirror pre code {
+  @apply bg-transparent p-0;
+}
+
+.ProseMirror hr {
+  @apply my-4 border-t border-gray-300 dark:border-gray-600;
+}
+
+.ProseMirror a {
+  @apply text-primary-600 underline cursor-pointer;
+}
+
+.ProseMirror mark {
+  @apply bg-yellow-200 dark:bg-yellow-900 rounded px-0.5;
+}
+
+/* Placeholder */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-gray-400 float-left h-0 pointer-events-none;
+}
+
+/* Menú de enlaces */
+.link-menu {
+  @apply absolute bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 flex gap-2 z-50;
 }

@@ -1,66 +1,23 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Plus, Edit2, Trash2, Mail, Phone, Shield, Crown, Eye, X, Check } from "../../lib/icons.js";
 import { Modal } from "../../components/ui/index.jsx";
 import clsx from "clsx";
 import { Link } from "react-router-dom";
+import { api } from "../../lib/api.js";
+import { notify } from "../../lib/notifications.js";
+import Loader from "../../components/ui/Loader.jsx";
 
 const ROLES = [
-  {
-    id: "admin",
-    label: "Admin",
-    icon: Shield,
-    color: "text-blue-600 dark:text-blue-400",
-    bg: "bg-blue-50 dark:bg-blue-900/20",
-    badge: "badge-blue",
-    desc: "Todo excepto billing y eliminar la tienda",
-  },
-  {
-    id: "operator",
-    label: "Operador",
-    icon: Users,
-    color: "text-emerald-600 dark:text-emerald-400",
-    bg: "bg-emerald-50 dark:bg-emerald-900/20",
-    badge: "badge-green",
-    desc: "Órdenes, envíos e inventario",
-  },
-  {
-    id: "viewer",
-    label: "Visor",
-    icon: Eye,
-    color: "text-gray-500 dark:text-gray-400",
-    bg: "bg-gray-50 dark:bg-gray-800",
-    badge: "badge-gray",
-    desc: "Solo lectura — dashboard y reportes",
-  },
+  { id: "admin",    label: "Admin",    icon: Shield, color: "text-blue-600 dark:text-blue-400",   bg: "bg-blue-50 dark:bg-blue-900/20",   desc: "Todo excepto billing y eliminar la tienda" },
+  { id: "operator", label: "Operador", icon: Users,  color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20", desc: "Órdenes, envíos e inventario" },
+  { id: "viewer",   label: "Visor",    icon: Eye,    color: "text-gray-500 dark:text-gray-400",   bg: "bg-gray-50 dark:bg-gray-800",      desc: "Solo lectura — dashboard y reportes" },
 ];
 
 const PERMISSIONS = {
-  admin: {
-    "Dashboard":    true,  "Productos":   true,  "Órdenes":    true,
-    "Clientes":     true,  "Envíos":      true,  "Reportes":   true,
-    "Cupones":      true,  "Páginas CMS": true,  "Calendario": true,
-    "Ajustes":      true,  "Billing":     false, "Equipo":     true,
-  },
-  operator: {
-    "Dashboard":    true,  "Productos":   true,  "Órdenes":    true,
-    "Clientes":     true,  "Envíos":      true,  "Reportes":   false,
-    "Cupones":      false, "Páginas CMS": false, "Calendario": true,
-    "Ajustes":      false, "Billing":     false, "Equipo":     false,
-  },
-  viewer: {
-    "Dashboard":    true,  "Productos":   false, "Órdenes":    false,
-    "Clientes":     false, "Envíos":      false, "Reportes":   true,
-    "Cupones":      false, "Páginas CMS": false, "Calendario": false,
-    "Ajustes":      false, "Billing":     false, "Equipo":     false,
-  },
+  admin:    { "Dashboard":true,"Productos":true,"Órdenes":true,"Clientes":true,"Envíos":true,"Reportes":true,"Cupones":true,"Páginas CMS":true,"Calendario":true,"Ajustes":true,"Billing":false,"Equipo":true },
+  operator: { "Dashboard":true,"Productos":true,"Órdenes":true,"Clientes":true,"Envíos":true,"Reportes":false,"Cupones":false,"Páginas CMS":false,"Calendario":true,"Ajustes":false,"Billing":false,"Equipo":false },
+  viewer:   { "Dashboard":true,"Productos":false,"Órdenes":false,"Clientes":false,"Envíos":false,"Reportes":true,"Cupones":false,"Páginas CMS":false,"Calendario":false,"Ajustes":false,"Billing":false,"Equipo":false },
 };
-
-const INITIAL_MEMBERS = [
-  { id: 1, name: "Jorge Ramírez",   email: "jorge@mystore.com",   phone: "+57 310 000 0001", role: "owner",    status: "active",  joined: "2025-01-15", avatar: "JR" },
-  { id: 2, name: "Laura Gómez",     email: "laura@mystore.com",   phone: "+57 311 000 0002", role: "admin",    status: "active",  joined: "2025-03-10", avatar: "LG" },
-  { id: 3, name: "Carlos Ruiz",     email: "carlos@mystore.com",  phone: "+57 312 000 0003", role: "operator", status: "active",  joined: "2025-06-22", avatar: "CR" },
-  { id: 4, name: "Ana Martínez",    email: "ana@mystore.com",     phone: "",                 role: "viewer",   status: "pending", joined: "2026-03-01", avatar: "AM" },
-];
 
 const AVATAR_COLORS = ["#4f46e5","#10b981","#f59e0b","#8b5cf6","#ec4899","#06b6d4"];
 
@@ -71,14 +28,29 @@ const STATUS_CFG = {
 };
 
 const EMPTY_FORM = { name: "", email: "", phone: "", role: "operator" };
-
 export default function Team() {
-  const [members, setMembers]       = useState(INITIAL_MEMBERS);
-  const [modal, setModal]           = useState(false);
+
+  const [members, setMembers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { fetchMembers(); }, []);
+
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+      const data = await api.users.list();
+      setMembers(data);
+    } catch {
+      notify.error("Error al cargar equipo");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const [modal, setModal] = useState(false);
   const [editMember, setEditMember] = useState(null);
-  const [delModal, setDelModal]     = useState(null);
-  const [permModal, setPermModal]   = useState(null);
-  const [form, setForm]             = useState(EMPTY_FORM);
+  const [delModal, setDelModal] = useState(null);
+  const [permModal, setPermModal] = useState(null);
+  const [form, setForm] = useState(EMPTY_FORM);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const openInvite = () => {
@@ -93,31 +65,43 @@ export default function Team() {
     setModal(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (!form.name.trim() || !form.email.trim()) return;
-    if (editMember) {
-      setMembers(ms => ms.map(m => m.id === editMember.id ? { ...m, ...form } : m));
-    } else {
-      setMembers(ms => [...ms, {
-        ...form,
-        id: Date.now(),
-        status: "pending",
-        joined: new Date().toISOString().slice(0, 10),
-        avatar: form.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase(),
-      }]);
+    try {
+      if (editMember) {
+        await api.users.updateRole(editMember.id, form.role);
+        notify.memberUpdated(form.name);
+      } else {
+        await api.users.invite({ name: form.name, email: form.email, phone: form.phone, role: form.role });
+        notify.memberInvited(form.email);
+      }
+      setModal(false);
+      fetchMembers();
+    } catch (err) {
+      notify.error(err.message || "Error al guardar");
     }
-    setModal(false);
   };
 
-  const toggleStatus = (id) => {
-    setMembers(ms => ms.map(m =>
-      m.id === id ? { ...m, status: m.status === "active" ? "inactive" : "active" } : m
-    ));
+  const toggleStatus = async (id, currentStatus) => {
+    try {
+      const newStatus = currentStatus === "active" ? "inactive" : "active";
+      await api.users.updateStatus(id, newStatus);
+      fetchMembers();
+    } catch {
+      notify.error("Error al cambiar estado");
+    }
   };
 
+
+  if (loading) return (
+    <div className="flex flex-col items-center justify-center h-64 gap-3">
+      <Loader size={80} />
+      <p className="text-sm text-gray-400">Cargando equipo…</p>
+    </div>
+  );
   const getRoleCfg = (role) => ROLES.find(r => r.id === role);
 
-  const activeCount  = members.filter(m => m.status === "active").length;
+  const activeCount = members.filter(m => m.status === "active").length;
   const pendingCount = members.filter(m => m.status === "pending").length;
 
   return (
@@ -139,10 +123,10 @@ export default function Team() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Total miembros", value: members.length,                              color: "text-primary-600 dark:text-primary-400", bg: "bg-primary-50 dark:bg-primary-900/30" },
-          { label: "Activos",        value: activeCount,                                 color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
-          { label: "Pendientes",     value: pendingCount,                                color: "text-amber-500",   bg: "bg-amber-50 dark:bg-amber-900/20" },
-          { label: "Roles distintos",value: [...new Set(members.map(m => m.role))].length, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
+          { label: "Total miembros", value: members.length, color: "text-primary-600 dark:text-primary-400", bg: "bg-primary-50 dark:bg-primary-900/30" },
+          { label: "Activos", value: activeCount, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-900/20" },
+          { label: "Pendientes", value: pendingCount, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-900/20" },
+          { label: "Roles distintos", value: [...new Set(members.map(m => m.role))].length, color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-900/20" },
         ].map(s => (
           <div key={s.label} className="card px-4 py-3 flex items-center gap-3">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0", s.bg)}>
@@ -172,15 +156,15 @@ export default function Team() {
                     className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
                     style={{ background: AVATAR_COLORS[i % AVATAR_COLORS.length] }}
                   >
-                    {m.avatar}
+                    {m.name?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <Link
-  to={`/settings/team/${m.id}`}
-  className="text-sm font-semibold text-gray-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
->
-  {m.name}
-</Link>
+                      to={`/settings/team/${m.id}`}
+                      className="text-sm font-semibold text-gray-800 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                    >
+                      {m.name}
+                    </Link>
                     <p className="text-xs text-gray-400">{m.email}</p>
                   </div>
                 </div>
@@ -231,7 +215,7 @@ export default function Team() {
                     <Edit2 size={12} /> Editar
                   </button>
                   <button
-                    onClick={() => toggleStatus(m.id)}
+                    onClick={() => toggleStatus(m.id, m.status)}
                     className={clsx(
                       "btn-ghost flex-1 text-xs py-1.5 gap-1.5 justify-center",
                       m.status === "active"
@@ -242,9 +226,16 @@ export default function Team() {
                     {m.status === "active" ? "Desactivar" : "Activar"}
                   </button>
                   <button
-                    onClick={() => setDelModal(m)}
-                    className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-red-500"
-                  >
+                    onClick={async () => {
+                      try {
+                        await api.users.delete(delModal.id);
+                        notify.memberRemoved(delModal.name);
+                        setDelModal(null);
+                        fetchMembers();
+                      } catch {
+                        notify.error("Error al eliminar miembro");
+                      }
+                    }}>
                     <Trash2 size={13} />
                   </button>
                 </div>

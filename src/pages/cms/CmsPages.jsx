@@ -1,13 +1,21 @@
 import { useState } from "react";
-import { Plus, Edit2, Trash2, FileText, ArrowLeft, Save } from "../../lib/icons.js";
+import { Plus, Edit2, Trash2, FileText, ArrowLeft, Save, Grid, Layout, X } from "../../lib/icons.js";
 import { cmsPages } from "../../data/mock.js";
 import { StatusBadge } from "../../components/ui/index.jsx";
 import PageBuilder from "./PageBuilder.jsx";
+import WidgetEditor from "./WidgetEditor.jsx";
 
 export default function CmsPages() {
   const [pages, setPages] = useState(cmsPages);
   const [editingPage, setEditingPage] = useState(null);
   const [form, setForm] = useState({ title: "", slug: "", status: "draft", content: "", metaTitle: "", metaDesc: "" });
+  
+  // Estados para widgets
+  const [editingWidget, setEditingWidget] = useState(null);
+  const [widgetData, setWidgetData] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [viewMode, setViewMode] = useState("pages"); // "pages" o "widgets"
+  
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const openNew = () => {
@@ -30,7 +38,14 @@ export default function CmsPages() {
     setEditingPage(null);
   };
 
-  // Vista editor
+  const handleSaveWidget = (data) => {
+    console.log("Widget guardado:", editingWidget, data);
+    setEditingWidget(null);
+    setWidgetData(null);
+    setViewMode("pages");
+  };
+
+  // Vista editor de página
   if (editingPage !== null) {
     return (
       <div className="space-y-5">
@@ -74,8 +89,6 @@ export default function CmsPages() {
           </div>
         </div>
 
-
-
         {/* SEO */}
         <div className="card p-5">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-4">SEO</h3>
@@ -103,53 +116,210 @@ export default function CmsPages() {
           </div>
         </div>
 
-                {/* Editor */}
+        {/* Editor */}
         <div className="rounded-xl overflow-hidden h-svh">
           <PageBuilder content={form.content} onChange={v => set("content", v)} />
         </div>
       </div>
-
-      
     );
   }
 
-  // Vista lista
+  // Vista principal (Páginas y Widgets)
   return (
     <div className="space-y-5">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Páginas</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Gestiona el contenido de tu tienda</p>
+      {/* Header con pestañas */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setViewMode("pages")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              viewMode === "pages"
+                ? "bg-primary-600 text-white"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            📄 Páginas
+          </button>
+          <button
+            onClick={() => setViewMode("widgets")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              viewMode === "widgets"
+                ? "bg-primary-600 text-white"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            🧩 Widgets
+          </button>
         </div>
-        <button className="btn-primary" onClick={openNew}><Plus size={16} /> Nueva página</button>
+        {viewMode === "pages" && (
+          <button className="btn-primary" onClick={openNew}>
+            <Plus size={16} /> Nueva página
+          </button>
+        )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        {pages.map(p => (
-          <div key={p.id} className="card p-5 group">
-            <div className="flex items-start justify-between mb-3">
-              <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
-                <FileText size={17} className="text-primary-600 dark:text-primary-400" />
+
+      {/* Vista de Páginas */}
+      {viewMode === "pages" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {pages.map(p => (
+            <div key={p.id} className="card p-5 group">
+              <div className="flex items-start justify-between mb-3">
+                <div className="w-9 h-9 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center">
+                  <FileText size={17} className="text-primary-600 dark:text-primary-400" />
+                </div>
+                <StatusBadge status={p.status} />
               </div>
-              <StatusBadge status={p.status} />
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-1">{p.title}</h3>
+              <p className="text-xs text-gray-400 font-mono mb-3">/{p.slug}</p>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-400">Updated {p.updated}</span>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openEdit(p)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600">
+                    <Edit2 size={13} />
+                  </button>
+                  <button onClick={() => setPages(pp => pp.filter(x => x.id !== p.id))} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-red-500">
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
             </div>
-            <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-1">{p.title}</h3>
-            <p className="text-xs text-gray-400 font-mono mb-3">/{p.slug}</p>
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-400">Updated {p.updated}</span>
-              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => openEdit(p)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600"><Edit2 size={13} /></button>
-                <button onClick={() => setPages(pp => pp.filter(x => x.id !== p.id))} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-red-500"><Trash2 size={13} /></button>
+          ))}
+        </div>
+      )}
+
+      {/* Vista de Widgets - SIN MODAL, COMPONENTE GRANDE */}
+      {viewMode === "widgets" && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 h-[calc(100vh-200px)]">
+          {/* Panel izquierdo: Lista de widgets */}
+          <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Widgets disponibles</h3>
+              <p className="text-xs text-gray-500 mt-1">Haz clic para editar</p>
+            </div>
+            <div className="flex-1 overflow-y-auto p-3 space-y-2">
+              {/* Hero Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "hero", name: "Hero / Banner principal" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Hero / Banner</h4>
+                    <p className="text-xs text-gray-400">Sección principal con título, imagen y botón</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Accordion Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "accordion", name: "Acordeón / FAQ" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Acordeón / FAQ</h4>
+                    <p className="text-xs text-gray-400">Preguntas frecuentes con despliegue</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Products Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "products", name: "Productos destacados" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Productos destacados</h4>
+                    <p className="text-xs text-gray-400">Muestra productos seleccionados</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Testimonials Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "testimonials", name: "Testimonios" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Testimonios</h4>
+                    <p className="text-xs text-gray-400">Opiniones de clientes</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Banner Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "banner", name: "Banner promocional" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Banner promocional</h4>
+                    <p className="text-xs text-gray-400">Imagen con texto y botón</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Contact Form Widget */}
+              <div
+                onClick={() => setEditingWidget({ id: "contact_form", name: "Formulario de contacto" })}
+                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <Layout size={18} className="text-primary-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Formulario de contacto</h4>
+                    <p className="text-xs text-gray-400">Formulario para contactar</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
-              <div>
-          <h1 className="page-title">Widyect</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Gestiona el contenido de tu tienda</p>
-        </div>
-    </div>
 
-    
+          {/* Panel derecho: Editor del widget (grande) */}
+          <div className="lg:col-span-3 border rounded-xl overflow-hidden bg-white dark:bg-gray-900">
+            {editingWidget ? (
+              <WidgetEditor
+                widget={editingWidget}
+                initialData={widgetData}
+                onSave={handleSaveWidget}
+                onCancel={() => {
+                  setEditingWidget(null);
+                  setWidgetData(null);
+                }}
+                categories={categories}
+              />
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-gray-400">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                  <Grid size={32} className="text-gray-400" />
+                </div>
+                <p className="text-sm font-medium">Selecciona un widget para editar</p>
+                <p className="text-xs mt-1">Haz clic en cualquier widget de la izquierda</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
