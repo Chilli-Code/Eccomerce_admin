@@ -25,15 +25,15 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
   const endAngle = 0;
   const angle = startAngle - (value / 100) * Math.PI;
   const trackStart = { x: cx + R * Math.cos(startAngle), y: cy + R * Math.sin(startAngle) };
-  const trackEnd   = { x: cx + R * Math.cos(endAngle),   y: cy + R * Math.sin(endAngle) };
-  const fillEnd    = { x: cx + R * Math.cos(angle),       y: cy + R * Math.sin(angle) };
-  const largeArc   = value > 50 ? 1 : 0;
+  const trackEnd = { x: cx + R * Math.cos(endAngle), y: cy + R * Math.sin(endAngle) };
+  const fillEnd = { x: cx + R * Math.cos(angle), y: cy + R * Math.sin(angle) };
+  const largeArc = value > 50 ? 1 : 0;
   const fmt = (n) => n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`;
 
   const periodLabel = {
     monthly: "Meta mensual",
-    range:   saved.from && saved.to ? `${saved.from} → ${saved.to}` : "Rango personalizado",
-    day:     saved.day || "Día específico",
+    range: saved.from && saved.to ? `${saved.from} → ${saved.to}` : "Rango personalizado",
+    day: saved.day || "Día específico",
   }[saved.type];
 
   return (
@@ -50,7 +50,7 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
             title="Configurar objetivo"
           >
             <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <circle cx="8" cy="3" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="8" cy="13" r="1.2"/>
+              <circle cx="8" cy="3" r="1.2" /><circle cx="8" cy="8" r="1.2" /><circle cx="8" cy="13" r="1.2" />
             </svg>
           </button>
         </div>
@@ -75,9 +75,9 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
 
         <div className="mt-auto grid grid-cols-3 gap-2 pt-3 border-t border-gray-100 dark:border-gray-800">
           {[
-            { label: "Target",  value: fmt(saved.target), up: false },
-            { label: "Revenue", value: fmt(revenue),      up: true  },
-            { label: "Today",   value: fmt(today),        up: true  },
+            { label: "Target", value: fmt(saved.target), up: false },
+            { label: "Revenue", value: fmt(revenue), up: true },
+            { label: "Today", value: fmt(today), up: true },
           ].map(s => (
             <div key={s.label} className="text-center">
               <p className="text-[11px] text-gray-400 mb-0.5">{s.label}</p>
@@ -97,7 +97,7 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowModal(false)} />
           <div className="relative bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-100 dark:border-gray-800">
-            
+
             {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <div className="flex items-center gap-2">
@@ -116,17 +116,16 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
                 <div className="grid grid-cols-3 gap-2 mt-1.5">
                   {[
                     { key: "monthly", label: "Mensual" },
-                    { key: "range",   label: "Rango" },
-                    { key: "day",     label: "Día" },
+                    { key: "range", label: "Rango" },
+                    { key: "day", label: "Día" },
                   ].map(t => (
                     <button
                       key={t.key}
                       onClick={() => setC("type", t.key)}
-                      className={`py-2 rounded-lg text-xs font-medium border transition-colors ${
-                        config.type === t.key
+                      className={`py-2 rounded-lg text-xs font-medium border transition-colors ${config.type === t.key
                           ? "bg-primary-600 border-primary-600 text-white"
                           : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      }`}
+                        }`}
                     >
                       {t.label}
                     </button>
@@ -188,13 +187,12 @@ export default function GaugeChart({ value = 75.55, change = "+10%", target = 20
                     <button
                       key={v}
                       onClick={() => setC("target", v)}
-                      className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${
-                        config.target === v
+                      className={`text-[11px] px-2 py-1 rounded-md border transition-colors ${config.target === v
                           ? "bg-primary-600 border-primary-600 text-white"
                           : "border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800"
-                      }`}
+                        }`}
                     >
-                      ${v >= 1000 ? `${v/1000}K` : v}
+                      ${v >= 1000 ? `${v / 1000}K` : v}
                     </button>
                   ))}
                 </div>

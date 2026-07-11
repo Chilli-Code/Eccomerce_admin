@@ -1,4 +1,4 @@
-import { X, Target, Ticket } from "lucide-react";
+import { X, Target, Ticket } from "../../lib/icons.js";
 import ProductSearchSelect from "../../components/ui/ProductSearchSelect.jsx";
 
 export default function CouponModal({ isOpen, onClose, onSave, editingId, form, setForm, categories, products }) {
@@ -22,7 +22,7 @@ export default function CouponModal({ isOpen, onClose, onSave, editingId, form, 
 
         {/* Layout 2 columnas */}
         <div className="flex bg-gray-50 dark:bg-gray-800/30 flex-col md:flex-row overflow-y-auto max-h-[calc(90vh-120px)]">
-          
+
           {/* Izquierda */}
           <div className="flex-1 p-6 ">
             <div className="space-y-4">
@@ -82,21 +82,20 @@ export default function CouponModal({ isOpen, onClose, onSave, editingId, form, 
                     { value: "product", label: "Producto" },
                   ].map(opt => (
                     <button key={opt.value} onClick={() => set("appliesTo", opt.value)}
-                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${
-                        form.appliesTo === opt.value ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                      }`}>
+                      className={`flex-1 py-1.5 rounded-lg text-xs font-medium ${form.appliesTo === opt.value ? "bg-primary-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                        }`}>
                       {opt.label}
                     </button>
                   ))}
                 </div>
-                
+
                 {form.appliesTo === "category" && (
                   <select value={form.categoryId} onChange={e => set("categoryId", e.target.value)} className="input">
                     <option value="">Seleccionar categoría</option>
                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                   </select>
                 )}
-                
+
                 {form.appliesTo === "product" && (
                   <ProductSearchSelect value={form.productId} onChange={(id) => set("productId", id)} placeholder="Buscar producto..." />
                 )}
@@ -106,8 +105,8 @@ export default function CouponModal({ isOpen, onClose, onSave, editingId, form, 
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 dark:border-gray-800">
-          <button className="btn-secondary" onClick={onClose}>Cancelar</button>
+        <div className="flex justify-end gap-3 px-6 py-1 md:py-4 border-t border-gray-100 dark:border-gray-800">
+          <button className="btn-secondary py-1 md:py-2" onClick={onClose}>Cancelar</button>
           <button className="btn-primary" onClick={onSave}>{editingId ? "Actualizar" : "Crear"}</button>
         </div>
       </div>

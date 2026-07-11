@@ -1,4 +1,4 @@
-import { Check, BarChart, Clock, Infinity, Ticket } from "lucide-react";
+import { Check, BarChart, Clock, Infinity } from "../../lib/icons.js";
 
 export default function CouponStats({ stats }) {
   const items = [

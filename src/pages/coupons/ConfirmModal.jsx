@@ -1,4 +1,4 @@
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, X } from "../../lib/icons.js";
 
 export default function ConfirmModal({ isOpen, onClose, onConfirm, title, message }) {
   if (!isOpen) return null;

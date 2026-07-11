@@ -9,6 +9,7 @@ export {
   CalendarDays,
   BarChart2,
   Crown,
+  Pencil,
   Target,
   Check,
   Mail,
@@ -47,6 +48,8 @@ export {
   // Coupons
   Ticket,
   Copy,
+  Infinity,
+  BarChart,
 
   // Settings
   Settings,
@@ -112,5 +115,6 @@ export {
   Sun,
   Moon,
   Sliders,
+  AlertTriangle,
   SlidersHorizontal as FilterIcon,
 } from "lucide-react";

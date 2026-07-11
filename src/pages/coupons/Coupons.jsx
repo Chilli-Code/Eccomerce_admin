@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Copy, Pencil, Trash2 } from "lucide-react";
+import { Plus, Copy, Pencil, Trash2 } from "../../lib/icons.js";
 import { StatusBadge } from "../../components/ui/index.jsx";
 import { api } from "../../lib/api.js";
 import { notify } from "../../lib/notifications.js";
@@ -18,7 +18,7 @@ export default function Coupons() {
   const [copied, setCopied] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-  const [form, setForm] = useState({ 
+  const [form, setForm] = useState({
     code: "", type: "percentage", value: "", usageLimit: "", startDate: "", endDate: "",
     minPurchase: "", appliesTo: "all", categoryId: "", productId: ""
   });
@@ -76,7 +76,7 @@ export default function Coupons() {
 
   const save = async () => {
     if (!form.code.trim() || !form.value) return notify.error("Código y valor son obligatorios");
-    
+
     try {
       const payload = {
         code: form.code.toUpperCase(),
@@ -89,7 +89,7 @@ export default function Coupons() {
         appliesTo: form.appliesTo,
         appliesToId: form.appliesTo !== "all" ? (form.appliesTo === "category" ? form.categoryId : form.productId) : undefined,
       };
-      
+
       if (editingId) {
         const updated = await api.coupons.update(editingId, payload);
         setCoupons(prev => prev.map(c => c.id === updated.id ? updated : c));
@@ -99,7 +99,7 @@ export default function Coupons() {
         setCoupons(prev => [...prev, newCoupon]);
         notify.productSaved("Cupón creado");
       }
-      
+
       setModalOpen(false);
     } catch (err) {
       notify.error(err.message || "Error al guardar");
