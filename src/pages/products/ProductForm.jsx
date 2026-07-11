@@ -5,7 +5,7 @@ import { notify } from "../../lib/notifications.js";
 import { api } from "../../lib/api.js";
 import Loader from "../../components/ui/Loader.jsx";
 import { FormCard, FormField, PriceInput } from "../../components/ui/FormCard.jsx";
-import { optimizeImage } from "../../lib/imageOptimizer.js";
+import { uploadImages } from "../../lib/cloudinary.js";
 import RichTextEditor from "../../components/ui/RichTextEditor.jsx";
 import DOMPurify from 'dompurify'; // 👈 IMPORTAR DOMPurify
 
@@ -105,7 +105,6 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const handleImageUpload = async (e) => {
   const files = Array.from(e.target.files);
   
-  // Validar archivos
   const validFiles = files.filter(file => {
     if (file.size > MAX_FILE_SIZE) {
       notify.error(`${file.name} excede el límite de 5MB`);
@@ -123,29 +122,13 @@ const handleImageUpload = async (e) => {
   setUploading(true);
   
   try {
-    const urls = await Promise.all(validFiles.map(async (file, index) => {
-      // Optimiza antes de subir
-      const optimized = await optimizeImage(file, {
-        maxWidth: 1200,
-        maxHeight: 1200,
-        quality: 0.82,
-      });
-
-      const fd = new FormData();
-      fd.append("image", optimized);
-      const res = await fetch(
-        `https://api.imgbb.com/1/upload?key=${import.meta.env.VITE_IMGBB_API_KEY}`,
-        { method: "POST", body: fd }
-      );
-      const data = await res.json();
-      if (!data.success) throw new Error();
-      
-      return data.data.url;
-    }));
-
-    const updated = [...images, ...urls];
-    setImages(updated);
-    notify.fileUploaded(`${urls.length} imagen(es) subidas`);
+    const results = await uploadImages(validFiles, (current, total) => {
+      notify.info(`Subiendo imagen ${current} de ${total}...`);
+    });
+    
+    const urls = results.map(r => r.url);
+    setImages(prev => [...prev, ...urls]);
+    notify.fileUploaded(`${urls.length} imagen(es) subidas a Cloudinary`);
   } catch { 
     notify.error("Error al subir una o más imágenes"); 
   } finally { 
@@ -379,7 +362,7 @@ const handleSave = async () => {
               <input type="file" accept="image/*" multiple className="sr-only" onChange={handleImageUpload} disabled={uploading} />
               {uploading
                 ? <div className="flex items-center justify-center gap-2 text-gray-400"><div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /><span className="text-sm">Subiendo…</span></div>
-                : <><Upload size={24} className="mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">Arrastra o <span className="text-primary-600">busca archivos</span></p><p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP · ImgBB</p></>
+                : <><Upload size={24} className="mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">Arrastra o <span className="text-primary-600">busca archivos</span></p><p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP · Cloudinary</p></>
               }
             </label>
           </FormCard>
