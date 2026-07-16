@@ -45,6 +45,7 @@ Panel de administración profesional multi-tienda para ecommerce. Una aplicació
 | **D3 Scale** | 4.0.2 | Escalado de datos |
 | **React Simple Maps** | 3.0.0 | Mapas estáticos |
 | **Sileo** | - | Notificaciones toast |
+| **Cuelume** | 0.1.2 | Sonidos de notificaciones |
 
 ### Tipografía
 
@@ -73,7 +74,10 @@ eccomerce_admin/
 │   ├── data/
 │   │   └── mock.js           # Datos de prueba para desarrollo
 │   ├── lib/
-│   │   └── icons.js          # Configuración de íconos
+│   │   ├── api.js             # Cliente API centralizado
+│   │   ├── icons.js           # Configuración de íconos
+│   │   ├── notifications.js   # Sistema de notificaciones toast con sonidos
+│   │   └── sounds.js          # Utilidad de sonidos (Cuelume)
 │   ├── pages/                # Todas las páginas de la aplicación
 │   │   ├── Login.jsx
 │   │   ├── calendar/
@@ -95,9 +99,11 @@ eccomerce_admin/
 │   └── main.jsx              # Punto de entrada
 ├── index.html
 ├── package.json
+├── scripts/
+│   └── cuelume-patch.mjs     # Postinstall: parchea exports de Cuelume
 ├── tailwind.config.js         # Configuración de Tailwind
 ├── postcss.config.js
-└── vite.config.js
+└── vite.config.js             # CSP, proxy y plugins
 ```
 
 ---
@@ -191,7 +197,7 @@ Protected Route → no token → navigate('/login')
 Centro de comando del sistema con métricas clave y visualizaciones.
 
 **KPIs Principales (StatCards):**
-- Revenue del mes (con % de cambio)
+- Ingresos del mes (formateados en COP con `Intl.NumberFormat("es-CO")`)
 - Total de pedidos
 - Nuevos clientes
 - Órdenes pendientes
@@ -202,19 +208,15 @@ Centro de comando del sistema con métricas clave y visualizaciones.
 |------------|------|-------------|
 | MonthlySalesBar | Bar Chart | Ventas mensuales comparadas con mes anterior |
 | OrderStatusPie | Pie Chart | Distribución de estados de pedidos |
-| TargetGauge | Gauge | Progreso hacia meta mensual |
+| TargetGauge | Gauge | Progreso hacia meta mensual (persistido vía API, % calculado dinámicamente) |
 | CustomerMap | Mapa interactivo | Distribución geográfica de clientes en Colombia |
 | StatisticsChart | Area Chart | Tendencias de ventas e ingresos por período |
 
 **Widgets Adicionales:**
 - **RecentOrdersWidget**: Tabla compacta de últimos 5 pedidos
 - **TopProducts**: Lista de 4 productos más vendidos
-- **OrdenesRecientes**: Resumen rápido de actividad
 
-**Filtros de Período:**
-- Mensual
-- Trimestral
-- Anual
+**Nota:** Todos los montos se muestran en pesos colombianos (COP) usando el formato `es-CO`.
 
 ---
 
@@ -829,6 +831,8 @@ Panel de configuración general con tabs.
 
 3. **Notifications**
    - Toggle para tipos de notificación
+   - Toggle de sonidos en notificaciones (usando Cuelume)
+   - Cada toast reproduce un sonido al aparecer
    - Email de notificaciones
    - Alertas de stock bajo
 
@@ -894,29 +898,18 @@ Configuración de transportistas.
 
 ### Página: Calendar (`/calendar`)
 
-Calendario de eventos y programación.
-
-**Tipos de Evento:**
-| Tipo | Color |
-|------|-------|
-| Coupon | Azul |
-| Sale | Verde |
-| Shipping | Morado |
-| Reminder | Naranja |
+Calendario de eventos construido con **DayFlow**. Vista mensual con grid responsivo.
 
 **Funcionalidades:**
-- Navegación por mes
-- Crear evento (modal)
-- Editar evento
-- Eliminar evento
-- Sidebar de eventos próximos
-- Leyenda de colores
+- Navegación entre meses
+- Vista de cuadrícula mensual con eventos
+- Crear, editar y eliminar eventos (modal con formulario completo)
+- Filtro por tipo de evento
 
 **Modal de Evento:**
 - Título
-- Tipo (dropdown)
-- Fecha de inicio
-- Fecha de fin
+- Tipo (Cupón / Venta / Envío / Recordatorio)
+- Fecha de inicio y fin
 - Descripción
 - Recordatorio (toggle)
 
@@ -947,10 +940,10 @@ Calendario de eventos y programación.
 
 | Componente | Tipo | Descripción |
 |------------|------|-------------|
-| **GaugeChart** | SVG | Semáforo de progreso hacia meta |
+| **GaugeChart** | SVG | Anillo circular de progreso hacia meta mensual (target persistido vía API) |
 | **StatisticsChart** | Recharts | Área dual (ventas + revenue) |
-| **CustomerMap** | MapLibre | Mapa interactivo de Colombia |
-| **RecentOrdersWidget** | Tabla | Widget de pedidos recientes |
+| **CustomerMap** | MapLibre | Mapa interactivo de Colombia con filtros por estado |
+| **RecentOrdersWidget** | Tabla | Widget de pedidos recientes con filtro por estado |
 
 ---
 
