@@ -12,7 +12,7 @@ const TYPE_STYLES = {
 const TYPE_ICONS = { reminder: "🔔", shipping: "📦", sale: "🏷️", coupon: "🎫" };
 const TYPE_LABELS = { reminder: "Recordatorio", shipping: "Envío", sale: "Oferta", coupon: "Cupón" };
 
-export default function EventModal({ isOpen, onClose, onSave, editingId, initialForm, categories, products }) {
+export default function EventModal({ isOpen, onClose, onSave, onDelete, editingId, initialForm, categories, products }) {
   const [form, setForm] = useState({
     title: "", date: "", endDate: "", isRange: false, type: "reminder",
     description: "", discountType: "percentage", discount: "",
@@ -316,11 +316,23 @@ export default function EventModal({ isOpen, onClose, onSave, editingId, initial
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
-          <button className="btn-secondary px-4 py-2 text-sm" onClick={onClose}>Cancelar</button>
-          <button className="btn-primary px-6 py-2 text-sm" onClick={handleSubmit}>
-            {editingId ? "Actualizar evento" : "Crear evento"}
-          </button>
+        <div className="flex justify-between gap-3 px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/30">
+          <div>
+            {editingId && onDelete && (
+              <button
+                onClick={async () => { if (confirm("¿Eliminar este evento?")) { await onDelete(editingId); onClose(); } }}
+                className="px-4 py-2 text-sm rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors font-medium"
+              >
+                Eliminar evento
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3">
+            <button className="btn-secondary px-4 py-2 text-sm" onClick={onClose}>Cancelar</button>
+            <button className="btn-primary px-6 py-2 text-sm" onClick={handleSubmit}>
+              {editingId ? "Actualizar evento" : "Crear evento"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

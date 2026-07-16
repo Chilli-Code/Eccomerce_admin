@@ -15,7 +15,7 @@ import { createSidebarPlugin } from "@dayflow/plugin-sidebar";
 import { createKeyboardShortcutsPlugin } from "@dayflow/plugin-keyboard-shortcuts";
 import { createLocalizationPlugin, es } from "@dayflow/plugin-localization";
 import "@dayflow/core/dist/styles.css";
-import { Plus } from "../../lib/icons.js";
+import { Plus, Pencil, Trash2 } from "../../lib/icons.js";
 import { api } from "../../lib/api.js";
 import { notify } from "../../lib/notifications.js";
 import EventModal from "./EventModal.jsx";
@@ -84,7 +84,6 @@ export default function Calendar() {
   const [initialForm, setInitialForm] = useState(null);
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
-
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem("dark_mode");
     if (saved !== null) return JSON.parse(saved);
@@ -125,10 +124,10 @@ export default function Calendar() {
 
   const dayFlowEvents = useMemo(() => events.map(toDayFlowEvent), [events]);
 
-  const openCreateModal = useCallback(() => {
+  const openCreateModal = useCallback((dateStr) => {
     setEditingId(null);
     setInitialForm({
-      title: "", date: selected || "", endDate: "", isRange: false,
+      title: "", date: dateStr || selected || "", endDate: "", isRange: false,
       type: "reminder", description: "", discountType: "percentage",
       discount: "", targetType: "category", targetId: "",
     });
@@ -159,19 +158,20 @@ export default function Calendar() {
     if (original) {
       openEditModalRef.current(original);
     } else {
-      const fallback = {
-        id: dfEvent.id,
-        title: dfEvent.title,
-        startDate: temporalToDate(dfEvent.start).toISOString().split("T")[0],
+      setEditingId(null);
+      setInitialForm({
+        title: dfEvent.title || "",
+        date: dfEvent.start ? temporalToDate(dfEvent.start).toISOString().split("T")[0] : "",
         endDate: dfEvent.end ? temporalToDate(dfEvent.end).toISOString().split("T")[0] : "",
+        isRange: !!dfEvent.end,
         type: dfEvent.calendarId || "reminder",
         description: dfEvent.description || "",
         discountType: dfEvent.meta?.discountType || "percentage",
         discount: dfEvent.meta?.discount || "",
         targetType: dfEvent.meta?.targetType || "category",
         targetId: dfEvent.meta?.targetId || "",
-      };
-      openEditModalRef.current(fallback);
+      });
+      setModalOpen(true);
     }
   }, []);
 
@@ -200,7 +200,7 @@ export default function Calendar() {
       createAgendaView({ daysToShow: 14 }),
     ],
     defaultView: ViewType.MONTH,
-    events: dayFlowEvents,
+    events: [],
     calendars: CALENDARS,
     defaultCalendar: "reminder",
     locale: "es",
@@ -254,6 +254,33 @@ export default function Calendar() {
     }
   }, [isDark]);
 
+  useEffect(() => {
+    if (!calendar?.app?.addExternalEvents) return;
+    const grouped = {};
+    dayFlowEvents.forEach(event => {
+      const calId = event.calendarId || "reminder";
+      if (!grouped[calId]) grouped[calId] = [];
+      grouped[calId].push(event);
+    });
+    Object.entries(grouped).forEach(([calId, events]) => {
+      calendar.app.addExternalEvents(calId, events);
+    });
+  }, [dayFlowEvents]);
+
+  useEffect(() => {
+    if (!calendar?.app?.subscribeEventChanges) return;
+    const unsub = calendar.app.subscribeEventChanges(changes => {
+      changes.forEach(change => {
+        if (change.type === "delete") {
+          const id = change.event.id;
+          setEvents(prev => prev.filter(e => String(e.id) !== String(id)));
+          api.calendar.delete(id).catch(() => {});
+        }
+      });
+    });
+    return () => unsub();
+  }, [calendar]);
+
   const saveEvent = async (formData) => {
     try {
       const payload = {
@@ -290,7 +317,8 @@ export default function Calendar() {
   const removeEvent = async (id) => {
     try {
       await api.calendar.delete(id);
-      setEvents(prev => prev.filter(e => e.id !== id));
+      setEvents(prev => prev.filter(e => String(e.id) !== String(id)));
+      calendar?.app?.deleteEvent?.(String(id));
       notify.productSaved("Evento eliminado");
     } catch (err) {
       notify.error("Error al eliminar evento");
@@ -336,7 +364,53 @@ export default function Calendar() {
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
         <div className="xl:col-span-3 card p-0 overflow-hidden" style={{ minHeight: 600 }}>
-          <DayFlowCalendar calendar={calendar} mobileEventDetail={() => null} />
+          <DayFlowCalendar
+            calendar={calendar}
+            mobileEventDetail={() => null}
+            eventContextMenu={({ event, onClose }) => {
+              const dfEvent = event;
+              return (
+                <div className="min-w-[160px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm">
+                  <button
+                    className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                    onClick={() => {
+                      onClose();
+                      const original = eventsRef.current.find(ev => String(ev.id) === dfEvent.id);
+                      if (original) openEditModalRef.current(original);
+                    }}
+                  >
+                    <Pencil size={14} /> Editar evento
+                  </button>
+                  <button
+                    className="w-full text-left px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                    onClick={async () => {
+                      onClose();
+                      if (confirm("¿Eliminar este evento?")) {
+                        const original = eventsRef.current.find(ev => String(ev.id) === dfEvent.id);
+                        if (original) await removeEvent(original.id);
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} /> Eliminar evento
+                  </button>
+                </div>
+              );
+            }}
+            gridContextMenu={({ date, onClose }) => (
+              <div className="min-w-[180px] py-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 text-sm">
+                <button
+                  className="w-full text-left px-3 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                  onClick={() => {
+                    onClose();
+                    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+                    openCreateModal(dateStr);
+                  }}
+                >
+                  <Plus size={14} /> Crear evento aquí
+                </button>
+              </div>
+            )}
+          />
         </div>
 
         <CalendarSidebar
@@ -354,6 +428,7 @@ export default function Calendar() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={saveEvent}
+        onDelete={removeEvent}
         editingId={editingId}
         initialForm={initialForm}
         categories={categories}
