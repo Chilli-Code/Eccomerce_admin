@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Eye, Plus, Trash2 } from "../../lib/icons.js";
+import { Users, Eye, Plus } from "../../lib/icons.js";
 import { StatusBadge, SearchInput, Pagination, Modal } from "../../components/ui/index.jsx";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
@@ -13,7 +13,6 @@ export default function Customers() {
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState("");
   const [page,      setPage]      = useState(1);
-  const [delModal,  setDelModal]  = useState(null);
   const [modal,     setModal]     = useState(false);
   const [form,      setForm]      = useState({ name: "", email: "", phone: "" });
   const navigate = useNavigate();
@@ -43,17 +42,6 @@ export default function Customers() {
       fetchCustomers();
     } catch (err) {
       notify.error(err.message || "Error al crear cliente");
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await api.customers.delete(delModal.id);
-      notify.customerDeleted(delModal.name);
-      setDelModal(null);
-      fetchCustomers();
-    } catch {
-      notify.error("Error al eliminar cliente");
     }
   };
 
@@ -144,14 +132,9 @@ export default function Customers() {
                   </td>
                   <td><StatusBadge status={c.status} /></td>
                   <td>
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => navigate(`/customers/${c.id}`)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600">
-                        <Eye size={14} />
-                      </button>
-                      <button onClick={() => setDelModal(c)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-red-500">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    <button onClick={() => navigate(`/customers/${c.id}`)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600">
+                      <Eye size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -194,22 +177,6 @@ export default function Customers() {
         </div>
       </Modal>
 
-      {/* Modal eliminar */}
-      <Modal
-        open={!!delModal}
-        onClose={() => setDelModal(null)}
-        title="Eliminar cliente"
-        footer={
-          <>
-            <button className="btn-secondary" onClick={() => setDelModal(null)}>Cancelar</button>
-            <button className="btn-danger" onClick={handleDelete}>Eliminar</button>
-          </>
-        }
-      >
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          ¿Eliminar a <strong className="text-gray-900 dark:text-white">{delModal?.name}</strong>? Esta acción no se puede deshacer.
-        </p>
-      </Modal>
     </div>
   );
 }

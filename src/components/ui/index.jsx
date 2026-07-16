@@ -2,7 +2,9 @@ import clsx from "clsx";
 
 export function StatusBadge({ status }) {
   const map = {
-    completed: "badge-green",
+    delivered: "badge-green",
+    in_transit: "badge-blue",
+    paid: "badge-green",
     active: "badge-green",
     published: "badge-green",
     processing: "badge-blue",

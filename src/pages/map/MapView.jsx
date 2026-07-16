@@ -8,7 +8,8 @@ import { notify } from "../../lib/notifications.js";
 const STATUS_COLORS = {
   pending: "#f59e0b",
   processing: "#6366f1",
-  completed: "#10b981",
+  in_transit: "#06b6d4",
+  delivered: "#10b981",
   cancelled: "#ef4444",
 };
 

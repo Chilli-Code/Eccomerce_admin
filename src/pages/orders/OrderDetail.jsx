@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, MapPin, CreditCard, Package, User, Truck, Clock, Pencil } from "../../lib/icons.js";
+import { ArrowLeft, MapPin, CreditCard, Package, User, Truck, Clock, Pencil, Tag } from "../../lib/icons.js";
 import { StatusBadge } from "../../components/ui/index.jsx";
 import AddressInput from "../../components/ui/AddressInput.jsx";
 import { api } from "../../lib/api.js";
@@ -68,9 +68,9 @@ export default function OrderDetail() {
     const timeline = [
       { label: "Orden creada", time: formatDate(createdAt), done: true },
       { label: "Pago confirmado", time: status !== "pending" ? formatDate(createdAt) : "Pendiente", done: status !== "pending" },
-      { label: "Procesando", time: status === "processing" || status === "shipped" || status === "completed" ? formatDate(createdAt) : "Pendiente", done: status === "processing" || status === "shipped" || status === "completed" },
-      { label: "Enviado", time: status === "shipped" || status === "completed" ? formatDate(createdAt) : "Pendiente", done: status === "shipped" || status === "completed" },
-      { label: "Entregado", time: status === "completed" ? formatDate(createdAt) : "Pendiente", done: status === "completed" },
+      { label: "Procesando", time: status === "processing" || status === "in_transit" || status === "delivered" ? formatDate(createdAt) : "Pendiente", done: status === "processing" || status === "in_transit" || status === "delivered" },
+      { label: "En camino", time: status === "in_transit" || status === "delivered" ? formatDate(createdAt) : "Pendiente", done: status === "in_transit" || status === "delivered" },
+      { label: "Entregado", time: status === "delivered" ? formatDate(createdAt) : "Pendiente", done: status === "delivered" },
     ];
     return timeline;
   };
@@ -87,19 +87,21 @@ export default function OrderDetail() {
 
   const timeline = getTimeline(order.status, order.createdAt);
   const subtotal = order.items?.reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
-  const discount = order.discount || 0;
-  const shipping = order.shipping || 0;
-  const total = subtotal - discount + shipping;
+  const discount = parseFloat(order.discount || "0");
+  const shippingCost = parseFloat(order.shippingCost || "0");
+  const total = subtotal - discount + shippingCost;
 
   return (
-    <div className="max-w-10xl space-y-5">
-      <div className="page-header">
+    <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/orders")} className="btn-ghost p-2 rounded-lg">
+          <button onClick={() => navigate("/orders")} className="btn-ghost p-2 rounded-lg shrink-0">
             <ArrowLeft size={18} />
           </button>
-          <div>
-            <h1 className="page-title">Order: #{order.id?.slice(0, 8)}</h1>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white truncate">
+              Order: #{order.id?.slice(0, 8)}
+            </h1>
             <p className="text-sm text-gray-400 mt-0.5">
               {formatDate(order.createdAt)} · {order.items?.length || 0} items
             </p>
@@ -115,65 +117,69 @@ export default function OrderDetail() {
           >
             <option value="pending">Pendiente</option>
             <option value="processing">Procesando</option>
-            <option value="completed">Completado</option>
+            <option value="in_transit">En camino</option>
+            <option value="delivered">Entregado</option>
             <option value="cancelled">Cancelado</option>
           </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left col */}
-        <div className="col-span-2 space-y-5">
+        <div className="lg:col-span-2 space-y-5">
           {/* Items */}
           <div className="table-wrap">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Order Items</h2>
             </div>
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Total</th>
-                 </tr>
-              </thead>
-              <tbody>
-                {order.items?.map((item, idx) => (
-                  <tr key={idx}>
-                    <td>
-<div className="flex items-center gap-3">
-  <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl overflow-hidden">
-    {item.image ? (
-      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-    ) : (
-      <Package size={16} className="text-gray-400" />
-    )}
-  </div>
-  <span className="font-medium text-sm">{item.name || `Producto ${item.productId?.slice(0, 8)}`}</span>
-</div>
-                    </td>
-                    <td className="font-mono text-xs text-gray-400">{item.sku || item.productId?.slice(0, 8)}</td>
-                    <td className="text-center">{item.quantity}</td>
-                    <td>{formatPrice(item.price)}</td>
-                    <td className="font-semibold">{formatPrice(item.price * item.quantity)}</td>
+            <div className="overflow-x-auto">
+              <table className="table-base">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th className="hidden md:table-cell">SKU</th>
+                    <th>Qty</th>
+                    <th className="hidden sm:table-cell">Price</th>
+                    <th>Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {order.items?.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl overflow-hidden shrink-0">
+                            {item.image ? (
+                              <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                            ) : (
+                              <Package size={16} className="text-gray-400" />
+                            )}
+                          </div>
+                          <span className="font-medium text-sm truncate">{item.name || `Producto ${item.productId?.slice(0, 8)}`}</span>
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell font-mono text-xs text-gray-400">{item.sku || item.productId?.slice(0, 8)}</td>
+                      <td className="text-center whitespace-nowrap">{item.quantity}</td>
+                      <td className="hidden sm:table-cell whitespace-nowrap">{formatPrice(item.price)}</td>
+                      <td className="font-semibold whitespace-nowrap">{formatPrice(item.price * item.quantity)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {/* Summary */}
             <div className="px-5 py-4 border-t border-gray-100 dark:border-gray-800 space-y-1.5">
               <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                 <span>Subtotal</span><span>{formatPrice(subtotal)}</span>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-                  <span>Descuento</span><span>-{formatPrice(discount)}</span>
+                <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-500">
+                  <span>Descuento {order.couponCode ? `(${order.couponCode})` : ""}</span>
+                  <span>-{formatPrice(discount)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
-                <span>Envío</span><span>{shipping === 0 ? "Gratis" : formatPrice(shipping)}</span>
+                <span>Envío</span><span>{shippingCost === 0 ? "Gratis" : formatPrice(shippingCost)}</span>
               </div>
               <div className="flex justify-between text-sm font-semibold text-gray-900 dark:text-white pt-1.5 border-t border-gray-100 dark:border-gray-800">
                 <span>Total</span><span>{formatPrice(total)}</span>
@@ -229,7 +235,7 @@ export default function OrderDetail() {
               <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
                 <Clock size={12} className="text-gray-400" />
                 <span className="text-xs text-gray-500">
-                  {order.status === "shipped" ? "Enviado" : order.status === "completed" ? "Entregado" : "Pendiente de envío"}
+                  {order.status === "in_transit" ? "En camino" : order.status === "delivered" ? "Entregado" : "Pendiente de envío"}
                 </span>
               </div>
               {order.trackingNumber && (
@@ -253,12 +259,19 @@ export default function OrderDetail() {
               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">Payment</h3>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`badge ${order.status === "cancelled" ? "badge-red" : order.status === "completed" ? "badge-green" : "badge-yellow"}`}>
-                {order.status === "cancelled" ? "Cancelado" : order.status === "completed" ? "Pagado" : "Pendiente"}
+              <span className={`badge ${order.status === "cancelled" ? "badge-red" : order.status === "delivered" ? "badge-green" : order.status === "processing" || order.status === "in_transit" ? "badge-green" : "badge-yellow"}`}>
+                {order.status === "cancelled" ? "Reembolsado" : order.status === "delivered" || order.status === "processing" || order.status === "in_transit" ? "Pagado" : "Pendiente"}
               </span>
               <span className="text-xs text-gray-500 capitalize">{order.paymentMethod || "No especificado"}</span>
             </div>
             <p className="text-sm font-semibold text-gray-800 dark:text-white mt-2">{formatPrice(order.total)}</p>
+            {order.couponCode && (
+              <div className="mt-2 pt-2 border-t border-gray-100 dark:border-gray-800 text-xs text-emerald-600 flex items-center gap-1">
+                <Tag size={12} />
+                Cupón: <span className="font-mono font-semibold">{order.couponCode}</span>
+                {discount > 0 && <span> (-{formatPrice(discount)})</span>}
+              </div>
+            )}
           </div>
 
           {/* Notes */}

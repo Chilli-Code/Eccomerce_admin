@@ -68,8 +68,8 @@ export default function Coupons() {
       endDate: coupon.expiresAt ? new Date(coupon.expiresAt).toISOString().split("T")[0] : "",
       minPurchase: coupon.minPurchase || "",
       appliesTo: coupon.appliesTo || "all",
-      categoryId: coupon.appliesToId || "",
-      productId: coupon.appliesToId || "",
+      categoryId: coupon.appliesTo === "category" ? (coupon.appliesToId || "") : "",
+      productId: coupon.appliesTo === "product" ? (coupon.appliesToId || "") : "",
     });
     setModalOpen(true);
   };
@@ -153,8 +153,8 @@ export default function Coupons() {
             {coupons.map(c => (
               <tr key={c.id}>
                 <td><div className="flex items-center gap-2"><span className="font-mono font-semibold text-sm">{c.code}</span><button onClick={() => copyCode(c.code)}>{copied === c.code ? <span className="text-xs text-emerald-500">Copied!</span> : <Copy size={12} />}</button></div></td>
-                <td className="capitalize text-sm">{c.type === "percentage" ? "percentage" : "fixed"}</td>
-                <td className="font-semibold">{c.type === "percentage" ? `${c.value}%` : `$${c.value}`}</td>
+                <td className="capitalize text-sm">{c.type === "free_shipping" ? "Envío gratis" : c.type === "percentage" ? "Porcentaje" : "Fijo"}</td>
+                <td className="font-semibold">{c.type === "free_shipping" ? "—" : c.type === "percentage" ? `${c.value}%` : `$${c.value}`}</td>
                 <td className="text-sm">{c.usedCount || 0} / {c.usageLimit ?? "∞"}</td>
                 <td className="text-xs text-gray-400">{c.startDate ? new Date(c.startDate).toLocaleDateString() : "Always"} - {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString() : "Never"}</td>
                 <td><StatusBadge status={c.status} /></td>

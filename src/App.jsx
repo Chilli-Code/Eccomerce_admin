@@ -29,6 +29,7 @@ import MapView from "./pages/map/MapView.jsx";
 import Team from "./pages/settings/Team.jsx";
 import TeamMember from "./pages/settings/TeamMember.jsx";
 import { applyColor } from "./lib/utils.js";
+import { initSounds } from "./lib/sounds.js";
 
 const CmsPages = lazy(() => import("./pages/cms/CmsPages.jsx"));
 import TicketForm from "./pages/tickets/TicketForm.jsx";
@@ -46,6 +47,8 @@ const [dark, setDark] = useState(() => {
     const saved = localStorage.getItem("primary_color");
     if (saved) applyColor(saved);
   }, []);
+
+  useEffect(() => { initSounds(); }, []);
 
 
   const [auth, setAuth] = useState(() => !!localStorage.getItem("admin_token"));

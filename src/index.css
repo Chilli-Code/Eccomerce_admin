@@ -116,7 +116,7 @@ background-color: #2f2f2ff0 !important;
 
   /* Stat card */
   .stat-card {
-    @apply card p-5 flex flex-col gap-3;
+    @apply card p-5 flex flex-col gap-3 min-w-0;
   }
 
   /* Buttons */
@@ -248,4 +248,14 @@ background-color: #2f2f2ff0 !important;
 /* Menú de enlaces */
 .link-menu {
   @apply absolute bg-white dark:bg-gray-800 shadow-lg rounded-lg p-2 flex gap-2 z-50;
+}
+
+.df-calendar-container {
+  --df-calendar-height: 600px;
+}
+
+@media (max-width: 768px) {
+  .df-calendar-container {
+    --df-calendar-height: 450px;
+  }
 }

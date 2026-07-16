@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "node scripts/cuelume-patch.mjs"
   },
   "dependencies": {
+    "@dayflow/core": "^3.6.5",
+    "@dayflow/plugin-drag": "^1.5.5",
+    "@dayflow/plugin-keyboard-shortcuts": "^1.5.5",
+    "@dayflow/plugin-localization": "^1.5.5",
+    "@dayflow/plugin-sidebar": "^1.5.5",
+    "@dayflow/react": "^3.6.5",
     "@tiptap/extension-color": "^3.20.5",
     "@tiptap/extension-highlight": "^3.20.5",
     "@tiptap/extension-link": "^3.20.5",
@@ -19,6 +26,7 @@
     "@tiptap/react": "^3.20.5",
     "@tiptap/starter-kit": "^3.20.5",
     "clsx": "^2.1.1",
+    "cuelume": "^0.1.2",
     "d3-scale": "^4.0.2",
     "dompurify": "^3.3.3",
     "grapesjs": "^0.22.14",

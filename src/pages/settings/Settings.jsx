@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
-import { Store, Globe, CreditCard, Bell, Shield, Palette, Crown, Upload, X } from "../../lib/icons.js";
+import { Store, Globe, CreditCard, Bell, Shield, Palette, Crown, Upload, X, Truck } from "../../lib/icons.js";
 import clsx from "clsx";
 import { api } from "../../lib/api.js";
 import { notify } from "../../lib/notifications.js";
 import Loader from "../../components/ui/Loader.jsx";
 import { applyColor } from "../../lib/utils.js";
 import { optimizeImage } from "../../lib/imageOptimizer.js";
+import { areSoundsEnabled, setSoundsEnabled } from "../../lib/sounds.js";
 
 const TABS = [
   { id: "general",       label: "General",       icon: Store    },
   { id: "payments",      label: "Pagos",          icon: CreditCard },
+  { id: "shipping",      label: "Envío",          icon: Truck    },
   { id: "notifications", label: "Notificaciones", icon: Bell     },
   { id: "security",      label: "Seguridad",      icon: Shield   },
   { id: "appearance",    label: "Apariencia",     icon: Palette  },
@@ -75,7 +77,7 @@ const handleLogoUpload = async (e) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">Nombre de la tienda</label>
           <input value={form.storeName} onChange={e => set("storeName", e.target.value)} className="input" placeholder="Mi Tienda" />
@@ -97,7 +99,7 @@ const handleLogoUpload = async (e) => {
       </div>
 
       {/* Info fija Colombia */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="label">Moneda</label>
           <input className="input bg-gray-50 dark:bg-gray-800 cursor-not-allowed" value="COP — Peso Colombiano" disabled />
@@ -276,7 +278,7 @@ const testStripeConnection = async () => {
             </button>
           </div>
           
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label text-xs">Public Key</label>
               <input 
@@ -343,6 +345,7 @@ const testStripeConnection = async () => {
 
 // ── Notifications ────────────────────────────────
 function NotificationsTab({ settings, onSave }) {
+  const [soundsOn, setSoundsOn] = useState(areSoundsEnabled());
   const ALL = [
     { key: "new_order",       label: "Nueva orden recibida"       },
     { key: "order_status",    label: "Cambio de estado de orden"  },
@@ -355,6 +358,24 @@ function NotificationsTab({ settings, onSave }) {
 
   return (
     <div className="space-y-3">
+      {/* Sound toggle */}
+      <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-gray-800 rounded-xl">
+        <div>
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Sonidos</p>
+          <p className="text-xs text-gray-400 mt-0.5">Reproducir sonido al recibir una notificación</p>
+        </div>
+        <button
+          onClick={() => { const next = !soundsOn; setSoundsOn(next); setSoundsEnabled(next); }}
+          className={clsx("relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0",
+            soundsOn ? "bg-primary-600" : "bg-gray-200 dark:bg-gray-700"
+          )}
+        >
+          <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform",
+            soundsOn ? "translate-x-6" : "translate-x-1"
+          )} />
+        </button>
+      </div>
+
       {ALL.map(item => (
         <div key={item.key} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-800">
           <p className="text-sm text-gray-700 dark:text-gray-300">{item.label}</p>
@@ -473,7 +494,7 @@ function BillingTab() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {PLANS.map(plan => (
           <div key={plan.id} className={clsx("rounded-xl border-2 p-5 relative", plan.id === currentPlan ? "border-primary-500 bg-primary-50 dark:bg-primary-900/10" : "border-gray-200 dark:border-gray-700")}>
             {plan.badge && (
@@ -522,6 +543,167 @@ function BillingTab() {
   );
 }
 
+// ── Shipping ──────────────────────────────────────
+function ShippingTab({ settings, onSave }) {
+  const [shippingCost, setShippingCost] = useState(settings?.shippingCost || "");
+  const [freeShippingMinAmount, setFreeShippingMinAmount] = useState(settings?.freeShippingMinAmount || "");
+  const [enabled, setEnabled] = useState(!!settings?.shippingCost || !!settings?.freeShippingMinAmount);
+  const [promos, setPromos] = useState(settings?.shippingPromos || []);
+  const [showPromoForm, setShowPromoForm] = useState(false);
+  const [newPromo, setNewPromo] = useState({ startDate: "", endDate: "", label: "" });
+  const [shippingFocused, setShippingFocused] = useState(false);
+  const [minAmountFocused, setMinAmountFocused] = useState(false);
+
+  const fmt = (v) => v ? new Intl.NumberFormat("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v)) : v;
+
+  const addPromo = () => {
+    if (!newPromo.startDate || !newPromo.endDate) return;
+    setPromos([...promos, { ...newPromo }]);
+    setNewPromo({ startDate: "", endDate: "", label: "" });
+    setShowPromoForm(false);
+  };
+
+  const removePromo = (i) => setPromos(promos.filter((_, idx) => idx !== i));
+
+  const handleSave = () => {
+    onSave({
+      shippingCost: enabled ? (shippingCost ? Number(shippingCost) : "0") : "0",
+      freeShippingMinAmount: enabled && freeShippingMinAmount ? Number(freeShippingMinAmount) : null,
+      shippingPromos: enabled ? promos : [],
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-4 border border-gray-100 dark:border-gray-800 rounded-xl">
+        <div>
+          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Cobrar envío</p>
+          <p className="text-xs text-gray-400 mt-0.5">Habilita el cobro de envío en los pedidos</p>
+        </div>
+        <button
+          onClick={() => setEnabled(!enabled)}
+          className={clsx("relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0",
+            enabled ? "bg-primary-600" : "bg-gray-200 dark:bg-gray-700"
+          )}
+        >
+          <span className={clsx("inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-transform",
+            enabled ? "translate-x-6" : "translate-x-1"
+          )} />
+        </button>
+      </div>
+
+      {enabled && (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Costo de envío predeterminado</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <input
+                  type={shippingFocused ? "number" : "text"}
+                  min="0"
+                  step="1000"
+                  value={shippingFocused ? (shippingCost ? Math.round(Number(shippingCost)) : "") : fmt(shippingCost)}
+                  onChange={e => setShippingCost(e.target.value)}
+                  onFocus={() => setShippingFocused(true)}
+                  onBlur={() => setShippingFocused(false)}
+                  className="input pl-7"
+                  placeholder="10,000"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Monto fijo que se cobrará si no aplica envío gratis</p>
+            </div>
+            <div>
+              <label className="label">Envío gratis en compras mayores a</label>
+              <div className="relative mt-1">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <input
+                  type={minAmountFocused ? "number" : "text"}
+                  min="0"
+                  step="1000"
+                  value={minAmountFocused ? (freeShippingMinAmount ? Math.round(Number(freeShippingMinAmount)) : "") : fmt(freeShippingMinAmount)}
+                  onChange={e => setFreeShippingMinAmount(e.target.value)}
+                  onFocus={() => setMinAmountFocused(true)}
+                  onBlur={() => setMinAmountFocused(false)}
+                  className="input pl-7"
+                  placeholder="60,000"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Si el subtotal del pedido supera este valor, el envío es gratis</p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+            <p className="text-xs font-medium text-blue-700 dark:text-blue-300">Cómo funciona</p>
+            <ul className="text-xs text-blue-600 dark:text-blue-400 mt-1 space-y-1">
+              <li>• Si el cliente tiene un cupón <strong>free_shipping</strong> → envío gratis</li>
+              <li>• Si el subtotal ≥ <strong>${freeShippingMinAmount || "—"}</strong> → envío gratis</li>
+              <li>• Si hay una promoción activa por fecha → envío gratis</li>
+              <li>• Si no → se cobra <strong>${shippingCost || "0"}</strong> de envío</li>
+              <li>• El total del pedido será: subtotal - descuento + costo de envío</li>
+            </ul>
+          </div>
+
+          {/* Promociones por fecha */}
+          <div className="p-4 border border-gray-100 dark:border-gray-800 rounded-xl">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Promociones por fecha</p>
+              <button onClick={() => setShowPromoForm(true)} className="text-xs text-primary-600 hover:text-primary-700 font-medium">
+                + Agregar
+              </button>
+            </div>
+
+            {promos.length === 0 && !showPromoForm && (
+              <p className="text-xs text-gray-400">Sin promociones. Agrega fechas para ofrecer envío gratis automáticamente.</p>
+            )}
+
+            {promos.map((p, i) => (
+              <div key={i} className="flex items-center justify-between py-2.5 border-b border-gray-50 dark:border-gray-800 last:border-0">
+                <div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{p.label || "Sin etiqueta"}</p>
+                  <p className="text-xs text-gray-400">
+                    {new Date(p.startDate).toLocaleDateString("es-CO")} — {new Date(p.endDate).toLocaleDateString("es-CO")}
+                  </p>
+                </div>
+                <button onClick={() => removePromo(i)} className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-red-500">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+
+            {showPromoForm && (
+              <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/30 rounded-lg space-y-3">
+                <div>
+                  <label className="label text-xs">Nombre de la promoción</label>
+                  <input value={newPromo.label} onChange={e => setNewPromo({ ...newPromo, label: e.target.value })} className="input text-sm" placeholder="Ej: Fiesta de Verano" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="label text-xs">Fecha inicio</label>
+                    <input type="date" value={newPromo.startDate} onChange={e => setNewPromo({ ...newPromo, startDate: e.target.value })} className="input text-sm" />
+                  </div>
+                  <div>
+                    <label className="label text-xs">Fecha fin</label>
+                    <input type="date" value={newPromo.endDate} onChange={e => setNewPromo({ ...newPromo, endDate: e.target.value })} className="input text-sm" />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button onClick={() => { setShowPromoForm(false); setNewPromo({ startDate: "", endDate: "", label: "" }); }} className="btn-secondary text-xs">Cancelar</button>
+                  <button onClick={addPromo} className="btn-primary text-xs">Agregar</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      <div className="pt-2">
+        <button className="btn-primary" onClick={handleSave}>Guardar cambios</button>
+      </div>
+    </div>
+  );
+}
+
 // ── Main ─────────────────────────────────────────
 export default function Settings() {
   const [active,   setActive]   = useState("general");
@@ -555,6 +737,7 @@ export default function Settings() {
   const TAB_CONTENT = {
     general:       () => <GeneralTab       settings={settings} onSave={handleSave} />,
     payments:      () => <PaymentsTab      settings={settings} onSave={handleSave} />,
+    shipping:      () => <ShippingTab      settings={settings} onSave={handleSave} />,
     notifications: () => <NotificationsTab settings={settings} onSave={handleSave} />,
     security:      () => <SecurityTab />,
     appearance:    () => <AppearanceTab />,
@@ -569,17 +752,17 @@ export default function Settings() {
         <h1 className="page-title">Ajustes</h1>
       </div>
 
-      <div className="grid grid-cols-4 gap-5">
-        <div className="card p-2">
-          <nav className="space-y-0.5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+        <div className="card p-2 overflow-x-auto">
+          <nav className="flex md:flex-col gap-1">
             {TABS.map(t => (
-              <button key={t.id} onClick={() => setActive(t.id)} className={clsx("nav-link w-full", active === t.id && "active")}>
+              <button key={t.id} onClick={() => setActive(t.id)} className={clsx("nav-link whitespace-nowrap flex-shrink-0 md:w-full", active === t.id && "active")}>
                 <t.icon size={16} /> {t.label}
               </button>
             ))}
           </nav>
         </div>
-        <div className="col-span-3 card p-6">
+        <div className="col-span-1 md:col-span-3 card p-6">
           <Content />
         </div>
       </div>

@@ -14,10 +14,11 @@ export default defineConfig({
       "Content-Security-Policy":
         "default-src 'self'; " +
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+        "worker-src blob:; " +
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
-        "img-src 'self' data: https://i.ibb.co https://placehold.co https://imgbb.com https://via.placeholder.com https://*.stripe.com https://res.cloudinary.com; " +
+        "img-src 'self' data: https://i.ibb.co https://placehold.co https://imgbb.com https://via.placeholder.com https://*.stripe.com https://res.cloudinary.com https://*.basemaps.cartocdn.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
-        "connect-src 'self' http://localhost:3001 http://192.168.0.14:3001 https://api.cloudinary.com https://res.cloudinary.com; " +
+        "connect-src 'self' http://localhost:3001 http://192.168.0.21:3001 https://api.cloudinary.com https://res.cloudinary.com https://*.basemaps.cartocdn.com; " +
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com;",
     },
     proxy: {

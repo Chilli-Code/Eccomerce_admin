@@ -4,7 +4,13 @@ import ProductSearchSelect from "../../components/ui/ProductSearchSelect.jsx";
 export default function CouponModal({ isOpen, onClose, onSave, editingId, form, setForm, categories, products }) {
   if (!isOpen) return null;
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const set = (k, v) => {
+    if (k === "type" && v === "free_shipping") {
+      setForm(f => ({ ...f, type: v, value: "0" }));
+    } else {
+      setForm(f => ({ ...f, [k]: v }));
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
@@ -36,11 +42,18 @@ export default function CouponModal({ isOpen, onClose, onSave, editingId, form, 
                   <select value={form.type} onChange={e => set("type", e.target.value)} className="input">
                     <option value="percentage">Porcentaje (%)</option>
                     <option value="fixed">Monto fijo ($)</option>
+                    <option value="free_shipping">Envío gratis</option>
                   </select>
                 </div>
                 <div>
                   <label className="label">Valor *</label>
-                  <input value={form.value} onChange={e => set("value", e.target.value)} className="input" type="number" placeholder={form.type === "percentage" ? "20" : "15000"} />
+                  {form.type === "free_shipping" ? (
+                    <div className="input bg-gray-50 dark:bg-gray-800 text-gray-400 flex items-center text-sm">
+                      Envío gratis automático
+                    </div>
+                  ) : (
+                    <input value={form.value} onChange={e => set("value", e.target.value)} className="input" type="number" placeholder={form.type === "percentage" ? "20" : "15000"} />
+                  )}
                 </div>
               </div>
               <div>

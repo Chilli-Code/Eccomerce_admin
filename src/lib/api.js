@@ -68,14 +68,6 @@ products: {
     updateStatus: (id, status)  => request(`/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   },
 
-  // ── Coupons ───────────────────────────────
-  coupons: {
-    list:     ()               => request("/coupons"),
-    create:   (data)           => request("/coupons",     { method: "POST", body: JSON.stringify(data) }),
-    validate: (code)           => request("/coupons/validate", { method: "POST", body: JSON.stringify({ code }) }),
-    delete:   (id)             => request(`/coupons/${id}`,    { method: "DELETE" }),
-  },
-
   // ── Tickets ───────────────────────────────
   tickets: {
     list:         (params = {}) => request(`/tickets?${new URLSearchParams(params)}`),

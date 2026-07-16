@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Plus, X, Upload } from "../../lib/icons.js";
+import clsx from "clsx";
 import { notify } from "../../lib/notifications.js";
 import { api } from "../../lib/api.js";
 import Loader from "../../components/ui/Loader.jsx";
@@ -13,6 +14,10 @@ const EMPTY_FORM = {
   name:"", sku:"", price:"", salePrice:"", costPrice:"",
   category:"", description:"", status:"draft", stock:"",
   tags:[], newTag:"", brand:"", badge:"", specs:"",
+  shippingMethod:"default",
+  shippingPrice:"",
+  warranty:"",
+  deliveryTime:"",
 };
 
 const BADGE_OPTIONS = ["", "NUEVO", "OFERTA", "MÁS VENDIDO", "AGOTADO"];
@@ -46,6 +51,8 @@ export default function ProductForm() {
   const [variants,   setVariants]   = useState([]);
   const [images,     setImages]     = useState([]);
   const [uploading,  setUploading]  = useState(false);
+  const [shippingPriceFocused, setShippingPriceFocused] = useState(false);
+  const fmtCOP = (v) => v ? new Intl.NumberFormat("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v)) : v;
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -75,6 +82,10 @@ api.products.get(id)
       newTag:      "",
       brand:       p.brand       || "",
       badge:       p.badge       || "",
+      shippingMethod: p.shippingMethod || "default",
+      shippingPrice: p.shippingPrice ? String(p.shippingPrice) : "",
+      warranty: p.warranty || "",
+      deliveryTime: p.deliveryTime || "",
 specs: p.specs
   ? (() => {
       try {
@@ -216,6 +227,10 @@ const handleSave = async () => {
       brand: form.brand || undefined,
       badge: form.badge || undefined, 
       specs: specsJson,
+      shippingMethod: form.shippingMethod,
+      shippingPrice: form.shippingPrice ? String(form.shippingPrice) : null,
+      warranty: form.warranty || null,
+      deliveryTime: form.deliveryTime || null,
     };
 
     let savedId = id;
@@ -337,6 +352,12 @@ const handleSave = async () => {
                 </select>
               </FormField>
             </div>
+            <FormField label="Garantía" hint="Ej: 12 meses, Garantía de fábrica">
+              <input value={form.warranty} onChange={e=>set("warranty",e.target.value)} className="input" placeholder="12 meses" />
+            </FormField>
+            <FormField label="Tiempo de entrega" hint="Ej: 24 - 48 horas, 3-5 días hábiles">
+              <input value={form.deliveryTime} onChange={e=>set("deliveryTime",e.target.value)} className="input" placeholder="24 – 48 horas" />
+            </FormField>
             <FormField label="Especificaciones técnicas" hint='Una por línea: Pantalla: 6.1" OLED'>
               <textarea value={form.specs} onChange={e=>set("specs",e.target.value)} rows={5}
                 className="input resize-none font-mono text-xs" placeholder={"Pantalla: 6.1\" OLED\nChip: A17 Pro\nBatería: 23h"} />
@@ -402,10 +423,55 @@ const handleSave = async () => {
             </select>
           </FormCard>
 
+          <FormCard title="Método de envío">
+            <select value={form.shippingMethod} onChange={e=>set("shippingMethod",e.target.value)} className="input">
+              <option value="default">Por defecto (tarifa fija global)</option>
+              <option value="manual">Precio manual por producto</option>
+            </select>
+            {form.shippingMethod === "manual" && (
+              <div className="mt-3">
+                <label className="label">Precio de envío</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input
+                    type={shippingPriceFocused ? "number" : "text"}
+                    min="0"
+                    value={shippingPriceFocused ? (form.shippingPrice ? Math.round(Number(form.shippingPrice)) : "") : fmtCOP(form.shippingPrice)}
+                    onChange={e=>set("shippingPrice",e.target.value)}
+                    onFocus={() => setShippingPriceFocused(true)}
+                    onBlur={() => setShippingPriceFocused(false)}
+                    className="input pl-7"
+                    placeholder="10,000"
+                  />
+                </div>
+              </div>
+            )}
+            <p className="text-xs text-gray-400 mt-1.5">Selecciona cómo se calcula el envío de este producto</p>
+          </FormCard>
+
           <FormCard title="Precios">
             <PriceInput label="Precio *"        value={form.price}     onChange={e=>set("price",e.target.value)} />
             <PriceInput label="Precio de oferta" value={form.salePrice} onChange={e=>set("salePrice",e.target.value)} />
-            <PriceInput label="Costo"            value={form.costPrice} onChange={e=>set("costPrice",e.target.value)} />
+            <div>
+              <PriceInput label="Costo" value={form.costPrice} onChange={e=>set("costPrice",e.target.value)} />
+              <p className="text-[11px] text-gray-400 mt-1">Lo que pagaste al proveedor por este producto. Se usa para calcular tu margen de ganancia.</p>
+              {form.price && form.costPrice && Number(form.costPrice) > 0 && (() => {
+                const refPrice = form.salePrice && Number(form.salePrice) > 0 ? Number(form.salePrice) : Number(form.price);
+                const cost = Number(form.costPrice);
+                const diff = refPrice - cost;
+                const margin = ((diff / refPrice) * 100);
+                const isProfitable = diff >= 0;
+                return (
+                  <div className={clsx("mt-2 px-3 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5", isProfitable ? "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400" : "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400")}>
+                    <span>{isProfitable ? "📈" : "📉"}</span>
+                    {isProfitable
+                      ? `Ganancia: $${diff.toLocaleString()} (${margin.toFixed(1)}%)`
+                      : `Pérdida: $${Math.abs(diff).toLocaleString()} (${Math.abs(margin).toFixed(1)}%)`}
+                    {form.salePrice && Number(form.salePrice) > 0 && <span className="opacity-60">· vs precio de oferta</span>}
+                  </div>
+                );
+              })()}
+            </div>
           </FormCard>
 
           <FormCard title="Inventario">

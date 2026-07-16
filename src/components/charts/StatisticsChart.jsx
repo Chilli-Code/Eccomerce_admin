@@ -3,18 +3,18 @@ import {
 } from "../../lib/charts.js";
 
 const FALLBACK = [
-  { label: "Jan", sales: 0, revenue: 0 },
+  { label: "Ene", sales: 0, revenue: 0 },
   { label: "Feb", sales: 0, revenue: 0 },
   { label: "Mar", sales: 0, revenue: 0 },
-  { label: "Apr", sales: 0, revenue: 0 },
+  { label: "Abr", sales: 0, revenue: 0 },
   { label: "May", sales: 0, revenue: 0 },
   { label: "Jun", sales: 0, revenue: 0 },
   { label: "Jul", sales: 0, revenue: 0 },
-  { label: "Aug", sales: 0, revenue: 0 },
+  { label: "Ago", sales: 0, revenue: 0 },
   { label: "Sep", sales: 0, revenue: 0 },
   { label: "Oct", sales: 0, revenue: 0 },
   { label: "Nov", sales: 0, revenue: 0 },
-  { label: "Dec", sales: 0, revenue: 0 },
+  { label: "Dic", sales: 0, revenue: 0 },
 ];
 
 export default function StatisticsChart({ monthlySales }) {
@@ -30,8 +30,8 @@ export default function StatisticsChart({ monthlySales }) {
     <div className="card p-5">
       <div className="flex items-start justify-between mb-1 flex-wrap gap-3">
         <div>
-          <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Statistics</h2>
-          <p className="text-xs text-gray-400">Monthly sales & orders</p>
+          <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Estadísticas</h2>
+          <p className="text-xs text-gray-400">Ventas y pedidos mensuales</p>
         </div>
       </div>
 
@@ -53,8 +53,8 @@ export default function StatisticsChart({ monthlySales }) {
           <Tooltip
             contentStyle={{ fontSize: 12, borderRadius: 8, border: "1px solid #e5e7eb", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
           />
-          <Area type="monotone" dataKey="sales" name="Total Sales" stroke="#4f46e5" strokeWidth={2} fill="url(#salesGrad)"/>
-          <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#818cf8" strokeWidth={2} fill="url(#revGrad2)" strokeDasharray="4 2"/>
+          <Area type="monotone" dataKey="sales" name="Ventas Totales" stroke="#4f46e5" strokeWidth={2} fill="url(#salesGrad)"/>
+          <Area type="monotone" dataKey="revenue" name="Ingresos" stroke="#818cf8" strokeWidth={2} fill="url(#revGrad2)" strokeDasharray="4 2"/>
           <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }}/>
         </AreaChart>
       </ResponsiveContainer>

@@ -54,7 +54,7 @@ export default function CustomerDetail() {
 
   const totalSpent  = Number(customer.totalSpent || 0);
   const avgOrder    = orders.length > 0 ? (orders.reduce((s, o) => s + Number(o.total), 0) / orders.length).toFixed(2) : "0.00";
-  const completed   = orders.filter(o => o.status === "completed").length;
+  const completed   = orders.filter(o => o.status === "delivered" || o.status === "in_transit").length;
 
   // Gasto mensual basado en órdenes reales
   const monthlySpend = orders.reduce((acc, o) => {
@@ -67,7 +67,7 @@ export default function CustomerDetail() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="page-header">
+      <div className="page-header flex-col md:flex-row gap-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/customers")} className="btn-ghost p-2 rounded-lg">
             <ArrowLeft size={18} />

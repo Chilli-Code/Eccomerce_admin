@@ -1,29 +1,81 @@
-// src/pages/Calendar.jsx
-import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Plus } from "../../lib/icons.js";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import {
+  useCalendarApp,
+  DayFlowCalendar,
+  createDayView,
+  createWeekView,
+  createMonthView,
+  createAgendaView,
+  createEvent,
+  temporalToDate,
+  ViewType,
+} from "@dayflow/react";
+import { createDragPlugin } from "@dayflow/plugin-drag";
+import { createSidebarPlugin } from "@dayflow/plugin-sidebar";
+import { createKeyboardShortcutsPlugin } from "@dayflow/plugin-keyboard-shortcuts";
+import { createLocalizationPlugin, es } from "@dayflow/plugin-localization";
+import "@dayflow/core/dist/styles.css";
+import { Plus } from "../../lib/icons.js";
 import { api } from "../../lib/api.js";
 import { notify } from "../../lib/notifications.js";
 import EventModal from "./EventModal.jsx";
-import CalendarGrid from "./CalendarGrid.jsx";
 import CalendarSidebar from "./CalendarSidebar.jsx";
 import Loader from "../../components/ui/Loader.jsx";
 
-const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const CALENDARS = [
+  {
+    id: "reminder",
+    name: "Recordatorios",
+    colors: { eventColor: "#e0e7ff", eventSelectedColor: "#c7d2fe", lineColor: "#6366f1", textColor: "#3730a3" },
+    darkColors: { eventColor: "#1e1b4b", eventSelectedColor: "#312e81", lineColor: "#818cf8", textColor: "#c7d2fe" },
+  },
+  {
+    id: "shipping",
+    name: "Envíos",
+    colors: { eventColor: "#dbeafe", eventSelectedColor: "#bfdbfe", lineColor: "#2563eb", textColor: "#1e3a8a" },
+    darkColors: { eventColor: "#172554", eventSelectedColor: "#1e3a5f", lineColor: "#60a5fa", textColor: "#bfdbfe" },
+  },
+  {
+    id: "sale",
+    name: "Ofertas",
+    colors: { eventColor: "#d1fae5", eventSelectedColor: "#a7f3d0", lineColor: "#059669", textColor: "#064e3b" },
+    darkColors: { eventColor: "#022c22", eventSelectedColor: "#064e3b", lineColor: "#34d399", textColor: "#a7f3d0" },
+  },
+  {
+    id: "coupon",
+    name: "Cupones",
+    colors: { eventColor: "#fef3c7", eventSelectedColor: "#fde68a", lineColor: "#d97706", textColor: "#78350f" },
+    darkColors: { eventColor: "#451a03", eventSelectedColor: "#78350f", lineColor: "#f59e0b", textColor: "#fde68a" },
+  },
+];
 
-function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate();
+function toDayFlowEvent(event) {
+  const start = new Date(event.startDate);
+  const end = event.endDate ? new Date(event.endDate) : new Date(start);
+  return createEvent({
+    id: String(event.id),
+    title: event.title,
+    start,
+    end,
+    allDay: true,
+    calendarId: event.type || "reminder",
+    description: event.description,
+    meta: {
+      discountType: event.discountType,
+      discount: event.discount,
+      targetType: event.targetType,
+      targetId: event.targetId,
+    },
+  });
 }
-function getFirstDayOfMonth(year, month) {
-  return new Date(year, month, 1).getDay();
-}
-function toDateStr(year, month, day) {
-  return `${year}-${String(month + 1).padStart(2,"0")}-${String(day).padStart(2,"0")}`;
+
+function toDateStr(date) {
+  const d = date instanceof Date ? date : temporalToDate(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 export default function Calendar() {
   const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth());
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
@@ -33,13 +85,31 @@ export default function Calendar() {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
 
-  // Cargar datos
+  const [isDark, setIsDark] = useState(() => {
+    const saved = localStorage.getItem("dark_mode");
+    if (saved !== null) return JSON.parse(saved);
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  });
+
+  useEffect(() => {
+    const el = document.documentElement;
+    const observer = new MutationObserver(() => {
+      setIsDark(el.classList.contains("dark"));
+    });
+    observer.observe(el, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
+
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
+  const openEditModalRef = useRef(null);
+
   useEffect(() => {
     api.categories.list().then(setCategories).catch(() => {});
     api.products.list({ limit: 100 }).then(data => setProducts(data.items || [])).catch(() => {});
   }, []);
 
-  const loadEvents = async () => {
+  const loadEvents = useCallback(async () => {
     try {
       setLoading(true);
       const data = await api.calendar.list();
@@ -49,52 +119,23 @@ export default function Calendar() {
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    loadEvents();
   }, []);
 
-  const prevMonth = () => {
-    if (month === 0) { setMonth(11); setYear(y => y - 1); }
-    else setMonth(m => m - 1);
-  };
+  useEffect(() => { loadEvents(); }, [loadEvents]);
 
-  const nextMonth = () => {
-    if (month === 11) { setMonth(0); setYear(y => y + 1); }
-    else setMonth(m => m + 1);
-  };
+  const dayFlowEvents = useMemo(() => events.map(toDayFlowEvent), [events]);
 
-  const daysInMonth = getDaysInMonth(year, month);
-  const firstDay = getFirstDayOfMonth(year, month);
-  const totalCells = Math.ceil((firstDay + daysInMonth) / 7) * 7;
-
-  const eventsFor = (dateStr) => {
-    return events.filter(e => {
-      const eventStart = new Date(e.startDate).toISOString().split("T")[0];
-      const eventEnd = e.endDate ? new Date(e.endDate).toISOString().split("T")[0] : eventStart;
-      return dateStr >= eventStart && dateStr <= eventEnd;
-    });
-  };
-
-  const openCreateModal = () => {
+  const openCreateModal = useCallback(() => {
     setEditingId(null);
     setInitialForm({
-      title: "",
-      date: selected || "",
-      endDate: "",
-      isRange: false,
-      type: "reminder",
-      description: "",
-      discountType: "percentage",
-      discount: "",
-      targetType: "category",
-      targetId: "",
+      title: "", date: selected || "", endDate: "", isRange: false,
+      type: "reminder", description: "", discountType: "percentage",
+      discount: "", targetType: "category", targetId: "",
     });
     setModalOpen(true);
-  };
+  }, [selected]);
 
-  const openEditModal = (event) => {
+  const openEditModal = useCallback((event) => {
     setEditingId(event.id);
     setInitialForm({
       title: event.title,
@@ -109,7 +150,109 @@ export default function Calendar() {
       targetId: event.targetId || "",
     });
     setModalOpen(true);
-  };
+  }, []);
+
+  openEditModalRef.current = openEditModal;
+
+  const openEventInModal = useCallback((dfEvent) => {
+    const original = eventsRef.current.find(ev => String(ev.id) === dfEvent.id);
+    if (original) {
+      openEditModalRef.current(original);
+    } else {
+      const fallback = {
+        id: dfEvent.id,
+        title: dfEvent.title,
+        startDate: temporalToDate(dfEvent.start).toISOString().split("T")[0],
+        endDate: dfEvent.end ? temporalToDate(dfEvent.end).toISOString().split("T")[0] : "",
+        type: dfEvent.calendarId || "reminder",
+        description: dfEvent.description || "",
+        discountType: dfEvent.meta?.discountType || "percentage",
+        discount: dfEvent.meta?.discount || "",
+        targetType: dfEvent.meta?.targetType || "category",
+        targetId: dfEvent.meta?.targetId || "",
+      };
+      openEditModalRef.current(fallback);
+    }
+  }, []);
+
+  const updateEventInBackend = useCallback(async (id, payload) => {
+    try {
+      const updated = await api.calendar.update(id, payload);
+      setEvents(prev => prev.map(e => String(e.id) === String(updated.id) ? updated : e));
+    } catch (err) {
+      if (err.status === 404) {
+        const match = eventsRef.current.find(ev => String(ev.id) === String(id));
+        if (match) {
+          notify.error("Evento no encontrado en el servidor");
+        }
+      } else {
+        notify.error("Error al actualizar evento");
+      }
+      loadEvents();
+    }
+  }, [loadEvents]);
+
+  const calendar = useCalendarApp({
+    views: [
+      createDayView(),
+      createWeekView({ startOfWeek: 1 }),
+      createMonthView({ scroll: { disabled: true, transition: "fade" } }),
+      createAgendaView({ daysToShow: 14 }),
+    ],
+    defaultView: ViewType.MONTH,
+    events: dayFlowEvents,
+    calendars: CALENDARS,
+    defaultCalendar: "reminder",
+    locale: "es",
+    useEventDetailPanel: false,
+    switcherMode: "buttons",
+    theme: { mode: isDark ? "dark" : "light" },
+    plugins: [
+      createDragPlugin({
+        enableDrag: true,
+        enableResize: false,
+        enableCreate: false,
+          onEventDrop: (updated, original) => {
+            const id = String(original?.id ?? updated.id);
+            const exists = eventsRef.current.some(ev => String(ev.id) === id);
+            if (!exists) return;
+            const startDate = toDateStr(updated.start);
+            const endDate = updated.end ? toDateStr(updated.end) : undefined;
+            updateEventInBackend(id, {
+              startDate,
+              endDate: endDate !== startDate ? endDate : undefined,
+            });
+          },
+      }),
+      createSidebarPlugin({
+        width: 240,
+        initialCollapsed: false,
+        createCalendarMode: "modal",
+      }),
+      createKeyboardShortcutsPlugin({
+        callbacks: {
+          newEvent: () => openCreateModal(),
+        },
+      }),
+      createLocalizationPlugin({ locales: [es] }),
+    ],
+    callbacks: {
+      onDateChange: (date) => setSelected(toDateStr(date)),
+      onEventDoubleClick: (dfEvent, e) => {
+        openEventInModal(dfEvent);
+        return false;
+      },
+      onMobileEventDetailToggle: (dfEvent) => {
+        if (dfEvent) openEventInModal(dfEvent);
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (calendar?.app?.setTheme) {
+      calendar.app.setTheme(isDark ? "dark" : "light");
+    }
+  }, [isDark]);
 
   const saveEvent = async (formData) => {
     try {
@@ -119,28 +262,22 @@ export default function Calendar() {
         startDate: formData.date,
         description: formData.description,
       };
-
-      if (formData.isRange && formData.endDate) {
-        payload.endDate = formData.endDate;
-      }
-
-      if (formData.type === "sale") {
+      if (formData.isRange && formData.endDate) payload.endDate = formData.endDate;
+      if (formData.type === "sale" || formData.type === "coupon") {
         payload.discountType = formData.discountType;
         payload.discount = parseFloat(formData.discount);
         payload.targetType = formData.targetType;
         if (formData.targetId) payload.targetId = formData.targetId;
       }
-
       if (editingId) {
         const updated = await api.calendar.update(editingId, payload);
-        setEvents(prev => prev.map(e => e.id === updated.id ? updated : e));
+        setEvents(prev => prev.map(e => String(e.id) === String(updated.id) ? updated : e));
         notify.productSaved("Evento actualizado");
       } else {
         const newEvent = await api.calendar.create(payload);
         setEvents(prev => [...prev, newEvent]);
         notify.productSaved("Evento creado");
       }
-      
       setModalOpen(false);
       setEditingId(null);
       setInitialForm(null);
@@ -161,19 +298,22 @@ export default function Calendar() {
   };
 
   const goToDate = (dateStr) => {
-    const [yearStr, monthStr] = dateStr.split("-");
-    setYear(parseInt(yearStr));
-    setMonth(parseInt(monthStr) - 1);
+    calendar.selectDate(new Date(dateStr + "T12:00:00"));
     setSelected(dateStr);
   };
 
-  const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate());
-  const upcoming = [...events]
-    .filter(e => new Date(e.startDate).toISOString().split("T")[0] >= todayStr)
+  const todayStr = toDateStr(today);
+  const upcoming = useMemo(() => [...events]
+    .filter(e => toDateStr(new Date(e.startDate)) >= todayStr)
     .sort((a, b) => new Date(a.startDate) - new Date(b.startDate))
-    .slice(0, 6);
+    .slice(0, 6), [events, todayStr]);
 
-  const selectedEvents = selected ? eventsFor(selected) : [];
+  const selectedEvents = useMemo(() =>
+    selected ? events.filter(e => {
+      const start = toDateStr(new Date(e.startDate));
+      const end = e.endDate ? toDateStr(new Date(e.endDate)) : start;
+      return selected >= start && selected <= end;
+    }) : [], [events, selected]);
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -195,65 +335,10 @@ export default function Calendar() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-5">
-        {/* Calendario principal */}
-        <div className="xl:col-span-3 card p-5">
-          {/* Header del calendario */}
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-base font-semibold text-gray-800 dark:text-white">
-              {MONTHS[month]} {year}
-            </h2>
-            <div className="flex items-center gap-1">
-              <button onClick={prevMonth} className="btn-ghost p-2 rounded-lg">
-                <ChevronLeft size={16} />
-              </button>
-              <button
-                onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }}
-                className="btn-secondary text-xs px-3 py-1.5"
-              >
-                Hoy
-              </button>
-              <button onClick={nextMonth} className="btn-ghost p-2 rounded-lg">
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          </div>
-
-          {/* Grid del calendario */}
-          <CalendarGrid
-            year={year}
-            month={month}
-            daysInMonth={daysInMonth}
-            firstDay={firstDay}
-            totalCells={totalCells}
-            eventsFor={eventsFor}
-            selected={selected}
-            setSelected={setSelected}
-            today={today}
-            toDateStr={toDateStr}
-          />
-
-          {/* Leyenda de colores */}
-          <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Cupones</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 " />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Ventas / Ofertas</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-primary-500" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Envíos</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-              <span className="text-xs text-gray-500 dark:text-gray-400">Recordatorios</span>
-            </div>
-          </div>
+        <div className="xl:col-span-3 card p-0 overflow-hidden" style={{ minHeight: 600 }}>
+          <DayFlowCalendar calendar={calendar} mobileEventDetail={() => null} />
         </div>
 
-        {/* Sidebar */}
         <CalendarSidebar
           selected={selected}
           selectedEvents={selectedEvents}
@@ -265,7 +350,6 @@ export default function Calendar() {
         />
       </div>
 
-      {/* Modal de eventos */}
       <EventModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}

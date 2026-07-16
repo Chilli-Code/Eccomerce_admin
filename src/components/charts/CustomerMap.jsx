@@ -8,7 +8,8 @@ const DOT_COLORS = ["#3730a3", "#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d
 const STATUS_BAR = [
   { key: "pending", label: "Pendientes", color: "#f59e0b" },
   { key: "processing", label: "Procesando", color: "#6366f1" },
-  { key: "completed", label: "Completados", color: "#10b981" },
+  { key: "in_transit", label: "En camino", color: "#06b6d4" },
+  { key: "delivered", label: "Entregados", color: "#10b981" },
   { key: "cancelled", label: "Cancelados", color: "#ef4444" },
 ];
 
@@ -16,7 +17,8 @@ const STATUS_FILTERS = [
   { key: "all", label: "Todos", color: null },
   { key: "pending", label: "Pendientes", color: "#f59e0b" },
   { key: "processing", label: "Procesando", color: "#6366f1" },
-  { key: "completed", label: "Completados", color: "#10b981" },
+  { key: "in_transit", label: "En camino", color: "#06b6d4" },
+  { key: "delivered", label: "Entregados", color: "#10b981" },
   { key: "cancelled", label: "Cancelados", color: "#ef4444" },
 ];
 
@@ -133,7 +135,7 @@ export default function CustomerMap({ size = "default", cities: citiesProp }) {
           <p className="text-xs text-gray-400">Distribución de pedidos en Colombia</p>
         </div>
         <div className="flex items-center justify-between mb-4">
-            <Link to="/shipping" className="text-xs text-primary-600 dark:text-primary-400 hover:underline">View all</Link>
+            <Link to="/shipping" className="text-xs text-primary-600 dark:text-primary-400 hover:underline">Ver todos</Link>
         </div>
       </div>
 
