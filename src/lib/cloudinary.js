@@ -99,6 +99,14 @@ export async function listImages(options = {}) {
   };
 }
 
+export async function deleteFolder(path) {
+  if (!path) throw new Error("Se requiere la ruta de la carpeta");
+  const res = await fetch(`${ADMIN_API}/folders/${path}`, { method: "DELETE" });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error al eliminar carpeta");
+  return data;
+}
+
 export async function listFolders(path = "") {
   const url = path
     ? `${ADMIN_API}/folders/${path}`

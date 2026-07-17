@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Upload, Image, Trash2, Grid, List } from "../../lib/icons.js";
-import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder } from "../../lib/cloudinary.js";
+import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder } from "../../lib/cloudinary.js";
 import { notify } from "../../lib/notifications.js";
 
 export default function Media() {
@@ -11,6 +11,7 @@ export default function Media() {
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [deleting, setDeleting] = useState(null);
+  const [deletingFolder, setDeletingFolder] = useState(null);
   const [currentFolder, setCurrentFolder] = useState("");
   const inputRef = useRef(null);
 
@@ -83,6 +84,20 @@ export default function Media() {
       notify.error("Error al eliminar imagen");
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleDeleteFolder = async (path, name) => {
+    if (!window.confirm(`¿Eliminar la carpeta "${name}" y todo su contenido?`)) return;
+    setDeletingFolder(path);
+    try {
+      await deleteFolder(path);
+      setFolders(prev => prev.filter(f => f.path !== path));
+      notify.success(`Carpeta "${name}" eliminada`);
+    } catch {
+      notify.error("Error al eliminar carpeta");
+    } finally {
+      setDeletingFolder(null);
     }
   };
 
@@ -175,20 +190,29 @@ export default function Media() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Carpetas</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mb-6">
-                {folders.map(f => (
-                  <button
-                    key={f.path}
-                    onClick={() => setCurrentFolder(f.path)}
-                    className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center"
-                  >
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
-                  </button>
-                ))}
+                  {folders.map(f => (
+                      <div key={f.path} className="relative group">
+                        <button
+                          onClick={() => setCurrentFolder(f.path)}
+                          className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center w-full"
+                        >
+                          <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                            <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                            </svg>
+                          </div>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFolder(f.path, f.name)}
+                          disabled={deletingFolder === f.path}
+                          className="absolute top-1 right-1 p-1 rounded-md bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-all shadow-sm"
+                          title="Eliminar carpeta"
+                        >
+                          {deletingFolder === f.path ? <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /> : <Trash2 size={12} />}
+                        </button>
+                      </div>
+                    ))}
               </div>
             </div>
           )}
