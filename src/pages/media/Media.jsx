@@ -1,7 +1,101 @@
-import { useState, useEffect, useRef } from "react";
-import { Upload, Image, Trash2, Grid, List } from "../../lib/icons.js";
-import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder } from "../../lib/cloudinary.js";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Upload, Image, Trash2, Grid, List, Copy, ArrowRight } from "../../lib/icons.js";
+import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder, renameImage, listAllFolders } from "../../lib/cloudinary.js";
 import { notify } from "../../lib/notifications.js";
+
+function ContextMenu({ x, y, onClose, items }) {
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const handle = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) onClose();
+    };
+    document.addEventListener("mousedown", handle);
+    document.addEventListener("contextmenu", handle);
+    return () => {
+      document.removeEventListener("mousedown", handle);
+      document.removeEventListener("contextmenu", handle);
+    };
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="fixed z-50 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl py-1 min-w-[180px]"
+      style={{ left: x, top: y }}
+    >
+      {items.map((item, i) => (
+        <button
+          key={i}
+          onClick={() => { item.onClick(); onClose(); }}
+          className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-left"
+        >
+          <span className="text-gray-400 w-4 h-4 flex items-center justify-center">{item.icon}</span>
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MoveModal({ onClose, onMove, currentFolder }) {
+  const [allFolders, setAllFolders] = useState([]);
+  const [target, setTarget] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    listAllFolders()
+      .then(setAllFolders)
+      .catch(() => notify.error("Error al cargar carpetas"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = allFolders.filter(f => f.path !== currentFolder);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-4">Mover imagen a carpeta</h3>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">No hay otras carpetas disponibles</p>
+        ) : (
+          <div className="max-h-60 overflow-y-auto space-y-1">
+            {filtered.map(f => (
+              <button
+                key={f.path}
+                onClick={() => setTarget(f.path)}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
+                  target === f.path
+                    ? "bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-300"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 border border-transparent"
+                }`}
+              >
+                <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                <span className="truncate">{f.path}</span>
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="flex justify-end gap-2 mt-6">
+          <button onClick={onClose} className="btn-secondary text-sm py-2 px-4">Cancelar</button>
+          <button
+            onClick={() => onMove(target)}
+            disabled={!target || loading}
+            className="btn-primary text-sm py-2 px-4 disabled:opacity-50"
+          >
+            Mover
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Media() {
   const [view, setView] = useState("grid");
@@ -13,6 +107,8 @@ export default function Media() {
   const [deleting, setDeleting] = useState(null);
   const [deletingFolder, setDeletingFolder] = useState(null);
   const [currentFolder, setCurrentFolder] = useState("");
+  const [contextMenu, setContextMenu] = useState(null);
+  const [moveTarget, setMoveTarget] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => { loadData(); }, [currentFolder]);
@@ -100,6 +196,29 @@ export default function Media() {
       setDeletingFolder(null);
     }
   };
+
+  const handleMove = async (publicId, targetFolder) => {
+    const parts = publicId.split("/");
+    const fileName = parts.pop();
+    const toPublicId = targetFolder ? `${targetFolder}/${fileName}` : fileName;
+    try {
+      await renameImage(publicId, toPublicId);
+      setImages(prev => prev.filter(img => img.publicId !== publicId));
+      setMoveTarget(null);
+      notify.success("Imagen movida");
+    } catch {
+      notify.error("Error al mover imagen");
+    }
+  };
+
+  const handleContextMenu = useCallback((e, img) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      img,
+    });
+  }, []);
 
   const formatSize = (bytes) => {
     if (!bytes) return "";
@@ -190,29 +309,29 @@ export default function Media() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Carpetas</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mb-6">
-                  {folders.map(f => (
-                      <div key={f.path} className="relative group">
-                        <button
-                          onClick={() => setCurrentFolder(f.path)}
-                          className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center w-full"
-                        >
-                          <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                            <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                            </svg>
-                          </div>
-                          <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteFolder(f.path, f.name)}
-                          disabled={deletingFolder === f.path}
-                          className="absolute top-1 right-1 p-1 rounded-md bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-all shadow-sm"
-                          title="Eliminar carpeta"
-                        >
-                          {deletingFolder === f.path ? <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /> : <Trash2 size={12} />}
-                        </button>
+                {folders.map(f => (
+                  <div key={f.path} className="relative group">
+                    <button
+                      onClick={() => setCurrentFolder(f.path)}
+                      className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center w-full"
+                    >
+                      <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                        </svg>
                       </div>
-                    ))}
+                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
+                    </button>
+                    <button
+                      onClick={() => handleDeleteFolder(f.path, f.name)}
+                      disabled={deletingFolder === f.path}
+                      className="absolute top-1 right-1 p-1 rounded-md bg-white/80 dark:bg-gray-800/80 opacity-0 group-hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-all shadow-sm"
+                      title="Eliminar carpeta"
+                    >
+                      {deletingFolder === f.path ? <div className="w-3 h-3 border-2 border-red-500 border-t-transparent rounded-full animate-spin" /> : <Trash2 size={12} />}
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
           )}
@@ -229,7 +348,11 @@ export default function Media() {
               {folders.length > 0 && <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Imágenes</p>}
               <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                 {images.map(img => (
-                  <div key={img.publicId} className="card p-3 group cursor-pointer hover:shadow-md transition-shadow">
+                  <div
+                    key={img.publicId}
+                    onContextMenu={(e) => handleContextMenu(e, img)}
+                    className="card p-3 group cursor-pointer hover:shadow-md transition-shadow relative"
+                  >
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-3">
                       <img src={img.url} alt={img.publicId} className="w-full h-full object-cover" loading="lazy" />
                     </div>
@@ -262,7 +385,7 @@ export default function Media() {
                 </thead>
                 <tbody>
                   {images.map(img => (
-                    <tr key={img.publicId}>
+                    <tr key={img.publicId} onContextMenu={(e) => handleContextMenu(e, img)} className="cursor-context-menu">
                       <td>
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
@@ -290,6 +413,44 @@ export default function Media() {
             </div>
           )}
         </>
+      )}
+
+      {/* Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          items={[
+            {
+              icon: <Copy size={14} />,
+              label: "Copiar URL",
+              onClick: () => {
+                navigator.clipboard.writeText(contextMenu.img.url);
+                notify.success("URL copiada al portapapeles");
+              },
+            },
+            {
+              icon: <ArrowRight size={14} />,
+              label: "Mover a carpeta...",
+              onClick: () => setMoveTarget(contextMenu.img.publicId),
+            },
+            {
+              icon: <Trash2 size={14} />,
+              label: "Eliminar",
+              onClick: () => handleDelete(contextMenu.img.publicId),
+            },
+          ]}
+        />
+      )}
+
+      {/* Move modal */}
+      {moveTarget && (
+        <MoveModal
+          currentFolder={currentFolder}
+          onClose={() => setMoveTarget(null)}
+          onMove={(targetFolder) => handleMove(moveTarget, targetFolder)}
+        />
       )}
     </div>
   );

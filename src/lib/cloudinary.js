@@ -107,6 +107,30 @@ export async function deleteFolder(path) {
   return data;
 }
 
+export async function renameImage(fromPublicId, toPublicId) {
+  const res = await fetch(`${ADMIN_API}/resources/image/upload/rename`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ from_public_id: fromPublicId, to_public_id: toPublicId, overwrite: true }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error al mover imagen");
+  return data;
+}
+
+export async function listAllFolders() {
+  const folders = [];
+  const collect = async (path = "") => {
+    const data = await listFolders(path);
+    for (const f of data.folders) {
+      folders.push(f);
+      await collect(f.path);
+    }
+  };
+  await collect();
+  return folders;
+}
+
 export async function listFolders(path = "") {
   const url = path
     ? `${ADMIN_API}/folders/${path}`
