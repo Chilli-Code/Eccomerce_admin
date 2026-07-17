@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Upload, Image, Trash2, Grid, List, Copy, ArrowRight, X } from "../../lib/icons.js";
-import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder, renameImage, listAllFolders } from "../../lib/cloudinary.js";
+import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder, createFolder, renameImage, listAllFolders } from "../../lib/cloudinary.js";
 import { notify } from "../../lib/notifications.js";
 
 function ContextMenu({ x, y, onClose, items }) {
@@ -198,6 +198,20 @@ export default function Media() {
     }
   };
 
+  const handleCreateFolder = async () => {
+    const name = window.prompt("Nombre de la nueva carpeta:");
+    if (!name || !name.trim()) return;
+    const path = currentFolder ? `${currentFolder}/${name.trim()}` : name.trim();
+    try {
+      await createFolder(path);
+      const data = await listFolders(currentFolder);
+      setFolders(data.folders);
+      notify.success(`Carpeta "${name.trim()}" creada`);
+    } catch {
+      notify.error("Error al crear carpeta");
+    }
+  };
+
   const handleMove = async (publicId, targetFolder) => {
     const parts = publicId.split("/");
     const fileName = parts.pop();
@@ -254,6 +268,13 @@ export default function Media() {
               <List size={15} />
             </button>
           </div>
+          <button className="btn-secondary" onClick={handleCreateFolder}>
+            <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v4m-2-2h4" />
+            </svg>
+            Nueva carpeta
+          </button>
           <button className="btn-primary" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Upload size={15} />}
             {uploading ? "Subiendo..." : "Upload"}

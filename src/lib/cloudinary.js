@@ -107,6 +107,14 @@ export async function deleteFolder(path) {
   return data;
 }
 
+export async function createFolder(path) {
+  if (!path) throw new Error("Se requiere el nombre de la carpeta");
+  const res = await fetch(`${ADMIN_API}/folders/${path}`, { method: "POST" });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error al crear carpeta");
+  return data;
+}
+
 export async function renameImage(fromPublicId, toPublicId) {
   const res = await fetch(`${ADMIN_API}/resources/image/upload/rename`, {
     method: "POST",
