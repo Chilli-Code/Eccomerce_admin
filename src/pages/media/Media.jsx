@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Upload, Image, Trash2, Grid, List, Copy, ArrowRight } from "../../lib/icons.js";
+import { Upload, Image, Trash2, Grid, List, Copy, ArrowRight, X } from "../../lib/icons.js";
 import { uploadImage, listImages, deleteImage, listFolders, uploadImageToFolder, deleteFolder, renameImage, listAllFolders } from "../../lib/cloudinary.js";
 import { notify } from "../../lib/notifications.js";
 
@@ -109,6 +109,7 @@ export default function Media() {
   const [currentFolder, setCurrentFolder] = useState("");
   const [contextMenu, setContextMenu] = useState(null);
   const [moveTarget, setMoveTarget] = useState(null);
+  const [previewImg, setPreviewImg] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => { loadData(); }, [currentFolder]);
@@ -357,6 +358,7 @@ export default function Media() {
                   <div
                     key={img.publicId}
                     onContextMenu={(e) => handleContextMenu(e, img)}
+                    onClick={() => setPreviewImg(img)}
                     className="card p-3 group cursor-pointer hover:shadow-md transition-shadow relative"
                   >
                     <div className="aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-3">
@@ -366,7 +368,7 @@ export default function Media() {
                     <div className="flex items-center justify-between mt-1">
                       <span className="text-xs text-gray-400">{formatSize(img.size)}</span>
                       <button
-                        onClick={() => handleDelete(img.publicId)}
+                        onClick={(e) => { e.stopPropagation(); handleDelete(img.publicId); }}
                         disabled={deleting === img.publicId}
                         className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"
                       >
@@ -475,6 +477,32 @@ export default function Media() {
           onClose={() => setMoveTarget(null)}
           onMove={(targetFolder) => handleMove(moveTarget, targetFolder)}
         />
+      )}
+
+      {/* Full-screen preview */}
+      {previewImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out"
+          onClick={() => setPreviewImg(null)}
+          onKeyDown={(e) => e.key === "Escape" && setPreviewImg(null)}
+          tabIndex={0}
+          ref={(el) => el?.focus()}
+        >
+          <img
+            src={previewImg.url}
+            alt={previewImg.publicId}
+            className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl"
+          />
+          <button
+            onClick={() => setPreviewImg(null)}
+            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+          >
+            <X size={20} />
+          </button>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-xs bg-black/40 px-3 py-1.5 rounded-full">
+            {previewImg.publicId.split("/").pop()}.{previewImg.format} · {previewImg.width}×{previewImg.height}
+          </div>
+        </div>
       )}
     </div>
   );
