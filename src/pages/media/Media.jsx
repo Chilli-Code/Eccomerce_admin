@@ -213,6 +213,7 @@ export default function Media() {
 
   const handleContextMenu = useCallback((e, img) => {
     e.preventDefault();
+    e.stopPropagation();
     setContextMenu({
       x: e.clientX,
       y: e.clientY,
@@ -309,19 +310,24 @@ export default function Media() {
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Carpetas</p>
               <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 mb-6">
-                {folders.map(f => (
+                  {folders.map(f => (
                   <div key={f.path} className="relative group">
-                    <button
-                      onClick={() => setCurrentFolder(f.path)}
-                      className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center w-full"
+                    <div
+                      onContextMenu={(e) => handleContextMenu(e, { publicId: f.path, url: "", format: "folder", isFolder: true, name: f.name })}
+                      className="contents"
                     >
-                      <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
-                        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
-                    </button>
+                      <button
+                        onClick={() => setCurrentFolder(f.path)}
+                        className="p-4 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all text-center w-full"
+                      >
+                        <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                          <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                          </svg>
+                        </div>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">{f.name}</p>
+                      </button>
+                    </div>
                     <button
                       onClick={() => handleDeleteFolder(f.path, f.name)}
                       disabled={deletingFolder === f.path}
@@ -421,26 +427,44 @@ export default function Media() {
           x={contextMenu.x}
           y={contextMenu.y}
           onClose={() => setContextMenu(null)}
-          items={[
-            {
-              icon: <Copy size={14} />,
-              label: "Copiar URL",
-              onClick: () => {
-                navigator.clipboard.writeText(contextMenu.img.url);
-                notify.success("URL copiada al portapapeles");
-              },
-            },
-            {
-              icon: <ArrowRight size={14} />,
-              label: "Mover a carpeta...",
-              onClick: () => setMoveTarget(contextMenu.img.publicId),
-            },
-            {
-              icon: <Trash2 size={14} />,
-              label: "Eliminar",
-              onClick: () => handleDelete(contextMenu.img.publicId),
-            },
-          ]}
+          items={
+            contextMenu.img.isFolder
+              ? [
+                  {
+                    icon: <Copy size={14} />,
+                    label: "Copiar ruta",
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.img.publicId);
+                      notify.success("Ruta copiada al portapapeles");
+                    },
+                  },
+                  {
+                    icon: <Trash2 size={14} />,
+                    label: "Eliminar carpeta",
+                    onClick: () => handleDeleteFolder(contextMenu.img.publicId, contextMenu.img.name),
+                  },
+                ]
+              : [
+                  {
+                    icon: <Copy size={14} />,
+                    label: "Copiar URL",
+                    onClick: () => {
+                      navigator.clipboard.writeText(contextMenu.img.url);
+                      notify.success("URL copiada al portapapeles");
+                    },
+                  },
+                  {
+                    icon: <ArrowRight size={14} />,
+                    label: "Mover a carpeta...",
+                    onClick: () => setMoveTarget(contextMenu.img.publicId),
+                  },
+                  {
+                    icon: <Trash2 size={14} />,
+                    label: "Eliminar",
+                    onClick: () => handleDelete(contextMenu.img.publicId),
+                  },
+                ]
+          }
         />
       )}
 
