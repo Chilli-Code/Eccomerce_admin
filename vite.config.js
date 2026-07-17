@@ -18,10 +18,18 @@ export default defineConfig({
         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
         "img-src 'self' data: https://i.ibb.co https://placehold.co https://imgbb.com https://via.placeholder.com https://*.stripe.com https://res.cloudinary.com https://*.basemaps.cartocdn.com; " +
         "font-src 'self' https://fonts.gstatic.com; " +
-        "connect-src 'self' http://localhost:3001 http://192.168.0.21:3001 https://api.cloudinary.com https://res.cloudinary.com https://*.basemaps.cartocdn.com; " +
+        "connect-src 'self' http://localhost:3001 http://192.168.0.5:3001 https://api.cloudinary.com https://res.cloudinary.com https://*.basemaps.cartocdn.com; " +
         "frame-src 'self' https://js.stripe.com https://hooks.stripe.com;",
     },
     proxy: {
+      "/widgets": {
+        target: "http://192.168.0.5:3001",
+        changeOrigin: true,
+      },
+      "/widget-bundles": {
+        target: "http://192.168.0.5:3001",
+        changeOrigin: true,
+      },
       "/cloudinary-admin": {
         target: `https://api.cloudinary.com/v1_1/${CLOUD_NAME}`,
         changeOrigin: true,

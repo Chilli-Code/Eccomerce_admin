@@ -27,6 +27,30 @@ export async function uploadImage(file) {
   };
 }
 
+export async function uploadImageToFolder(file, folder = "") {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (folder) formData.append("folder", folder);
+
+  const res = await fetch(`${ADMIN_API}/image/upload`, {
+    method: "POST",
+    body: formData,
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error al subir a Cloudinary");
+
+  return {
+    url: data.secure_url,
+    publicId: data.public_id,
+    width: data.width,
+    height: data.height,
+    format: data.format,
+    createdAt: data.created_at,
+    size: data.bytes,
+  };
+}
+
 export async function uploadImages(files, onProgress) {
   const results = [];
   for (let i = 0; i < files.length; i++) {
@@ -53,7 +77,9 @@ export async function listImages(options = {}) {
     ...(options.nextCursor ? { next_cursor: options.nextCursor } : {}),
   });
 
-  const res = await fetch(`${ADMIN_API}/resources/image?${params}`);
+  if (options.prefix) params.set("prefix", options.prefix);
+
+  const res = await fetch(`${ADMIN_API}/resources/image/upload?${params}`);
 
   const data = await res.json();
   if (!res.ok) throw new Error(data.error?.message || "Error al listar imágenes");
@@ -70,5 +96,22 @@ export async function listImages(options = {}) {
     })),
     nextCursor: data.next_cursor,
     totalCount: data.total_count,
+  };
+}
+
+export async function listFolders(path = "") {
+  const url = path
+    ? `${ADMIN_API}/folders/${path}`
+    : `${ADMIN_API}/folders`;
+
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message || "Error al listar carpetas");
+
+  return {
+    folders: (data.folders || []).map((f) => ({
+      name: f.name,
+      path: f.path,
+    })),
   };
 }

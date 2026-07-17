@@ -107,8 +107,8 @@ export default function Sidebar({ open, onLogout }) {
           <Zap size={16} className="text-white" />
         </div>
         <div>
-          <div className="text-sm font-semibold text-gray-900 dark:text-white">EcomAdmin</div>
-          <div className="text-[11px] text-gray-400">Super Admin</div>
+          <div className="text-sm font-semibold text-gray-900 dark:text-white">Keku Store</div>
+          <div className="text-[11px] text-gray-400">{user.role === "super_admin" || user.role === "owner" ? "Super Admin" : "Admin"}</div>
         </div>
       </div>
 
@@ -119,8 +119,8 @@ export default function Sidebar({ open, onLogout }) {
             <Store size={12} className="text-primary-600 dark:text-primary-400" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">My Store</div>
-            <div className="text-[10px] text-gray-400">mystore.com</div>
+            <div className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">Keku Store</div>
+            <div className="text-[10px] text-gray-400">kekustore.com</div>
           </div>
           <ChevronDown size={12} className="text-gray-400" />
         </div>

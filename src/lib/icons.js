@@ -115,6 +115,7 @@ export {
   Sun,
   Moon,
   Sliders,
+  Loader,
   AlertTriangle,
   SlidersHorizontal as FilterIcon,
 } from "lucide-react";

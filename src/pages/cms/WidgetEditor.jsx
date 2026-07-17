@@ -1,10 +1,244 @@
-import { useState } from "react";
-import { Save, X, Image, ChevronLeft, Eye, Smartphone, Tablet, Monitor } from "../../lib/icons.js";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Save, X, Image, ChevronLeft, Eye, Smartphone, Tablet, Monitor, Layout, Upload } from "../../lib/icons.js";
+import ImagePickerModal from "./ImagePickerModal.jsx";
+
+const DEVICE_WIDTHS = { desktop: "100%", tablet: "768px", mobile: "375px" };
+
+function LivePreview({ widget, formData, device }) {
+  const iframeRef = useRef(null);
+  const [loading, setLoading] = useState(true);
+
+  const getBundleUrl = () => {
+    if (!widget?.bundleUrl) return null;
+    if (widget.bundleUrl.startsWith("http")) return widget.bundleUrl;
+    return widget.bundleUrl;
+  };
+
+  const buildSrcdoc = useCallback(() => {
+    const bundleUrl = getBundleUrl();
+    if (!bundleUrl) return "<html><body><p>Sin bundle</p></body></html>";
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
+    #root { width: 100%; height: 100%; }
+    .swidget { height: 100vh !important; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    var widgetContent = ${JSON.stringify(formData)};
+    var script = document.createElement('script');
+    script.src = '${bundleUrl}';
+    script.onload = function() {
+      var root = document.getElementById('root');
+      var SW = window.SliderWidget;
+      if (SW && typeof SW.default === 'function') {
+        SW.default(root, widgetContent);
+      } else if (typeof SW === 'function') {
+        SW(root, widgetContent);
+      } else if (SW && typeof SW.init === 'function') {
+        SW.init(root, widgetContent);
+      } else if (SW && SW.SliderWidget) {
+        try { var React = window.React; var createRoot = window.ReactDOM.createRoot; } catch(e) {}
+      }
+    };
+    script.onerror = function() {
+      document.getElementById('root').innerHTML = '<div style="padding:2rem;color:red;text-align:center">Error al cargar bundle</div>';
+    };
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>`;
+  }, [formData, widget?.bundleUrl]);
+
+  useEffect(() => {
+    setLoading(true);
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    iframe.srcdoc = buildSrcdoc();
+  }, [buildSrcdoc]);
+
+  const isConstrained = device !== "desktop";
+
+  return (
+    <div className="relative w-full h-full bg-gray-300 dark:bg-gray-700 overflow-hidden">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-50 dark:bg-gray-800 z-10">
+          <p className="text-xs text-gray-400">Cargando widget...</p>
+        </div>
+      )}
+      <div
+        className={`h-full mx-auto transition-all duration-300 relative ${isConstrained ? "shadow-2xl" : ""}`}
+        style={{ maxWidth: DEVICE_WIDTHS[device] || "100%" }}
+      >
+        <iframe
+          ref={iframeRef}
+          className="w-full h-full border-0"
+          title="Widget Preview"
+          onLoad={() => setLoading(false)}
+          sandbox="allow-scripts allow-same-origin"
+        />
+      </div>
+    </div>
+  );
+}
+
+function DynamicPreview({ fieldsSchema, formData, widgetName }) {
+  const repeaterFields = (fieldsSchema || []).filter(f => f.type === "repeater");
+  const textFields = (fieldsSchema || []).filter(f => f.type === "text" || f.type === "url" || f.type === "email");
+  const imageFields = (fieldsSchema || []).filter(f => f.type === "image");
+  const firstTitle = textFields.find(f => /title|heading|nombre/i.test(f.name))?.name;
+  const firstImage = imageFields[0]?.name;
+  const items = repeaterFields[0] ? formData[repeaterFields[0].name] || [] : [];
+
+  if (firstTitle && firstImage && items.length > 0) {
+    const title = formData[firstTitle] || widgetName;
+    const img = formData[firstImage];
+    return (
+      <div className="space-y-3">
+        {img && <img src={img} alt="" className="w-full h-32 object-cover rounded-lg" />}
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {items.slice(0, 5).map((item, i) => (
+            <div key={i} className="flex-shrink-0 w-32 border rounded-lg p-2 text-center">
+              {item.image && <img src={item.image} alt="" className="w-full h-16 object-cover rounded mb-1" />}
+              {item.title && <p className="text-xs font-medium truncate">{item.title}</p>}
+              {Object.entries(item).filter(([k]) => k !== "image" && k !== "title").slice(0, 2).map(([k, v]) => (
+                <p key={k} className="text-[10px] text-gray-400 truncate">{String(v).slice(0, 20)}</p>
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (items.length > 0) {
+    return (
+      <div className="space-y-2">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{repeaterFields[0]?.label || "Items"}</h3>
+        {items.slice(0, 4).map((item, i) => (
+          <div key={i} className="border rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
+            {Object.entries(item).slice(0, 3).map(([k, v]) => (
+              <p key={k} className="text-xs"><span className="font-medium capitalize">{k}:</span> {String(v).slice(0, 40)}</p>
+            ))}
+          </div>
+        ))}
+        {items.length > 4 && <p className="text-xs text-gray-400">+{items.length - 4} más</p>}
+      </div>
+    );
+  }
+
+  if (firstTitle) {
+    const title = formData[firstTitle] || widgetName;
+    const img = firstImage ? formData[firstImage] : null;
+    return (
+      <div className="text-center py-6">
+        {img && <img src={img} alt="" className="w-full h-28 object-cover rounded-lg mb-3" />}
+        {textFields.slice(0, 3).map(f => (
+          formData[f.name] && <p key={f.name} className={`${f.name === firstTitle ? "text-lg font-bold" : "text-sm text-gray-500"} mb-1`}>{formData[f.name]}</p>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-8 text-gray-400">
+      <Layout size={32} className="mx-auto mb-3 opacity-40" />
+      <p className="text-sm font-medium text-gray-500">{widgetName}</p>
+      <p className="text-xs mt-1">Completa los campos a la izquierda para ver la vista previa</p>
+    </div>
+  );
+}
+
+function getSubFields(field) {
+  return field?.fields || field?.subFields || [];
+}
+
+function buildInitialData(schema, savedData) {
+  if (!schema) return savedData || {};
+  const out = {};
+  for (const f of schema) {
+    if (f.type === "repeater") {
+      out[f.name] = savedData?.[f.name] || [];
+    } else if (f.type === "checkbox") {
+      out[f.name] = savedData?.[f.name] ?? f.default ?? false;
+    } else if (savedData && savedData[f.name] !== undefined) {
+      out[f.name] = savedData[f.name];
+    } else if (f.default !== undefined) {
+      out[f.name] = structuredClone(f.default);
+    } else {
+      out[f.name] = "";
+    }
+  }
+  return out;
+}
+
+function makeEmptyRepeaterItem(field) {
+  const subFields = getSubFields(field);
+  if (!subFields.length) return {};
+  const item = {};
+  for (const sf of subFields) {
+    item[sf.name] = sf.default !== undefined ? sf.default : "";
+  }
+  return item;
+}
 
 export default function WidgetEditor({ widget, initialData, onSave, onCancel, categories }) {
-  const [formData, setFormData] = useState(initialData || {});
-  const [previewMode, setPreviewMode] = useState("desktop"); // desktop, tablet, mobile
+  const schema = widget?.fieldsSchema || widget?.fields;
+  const [formData, setFormData] = useState(() => buildInitialData(schema, initialData));
+  const [previewMode, setPreviewMode] = useState("desktop");
   const [showPreview, setShowPreview] = useState(true);
+  const [previewKey, setPreviewKey] = useState(0);
+  const [splitPercent, setSplitPercent] = useState(50);
+  const splitRef = useRef(null);
+  const [pickerField, setPickerField] = useState(null);
+
+  const handleImageSelect = (url) => {
+    if (!pickerField) return;
+    const { field, repeater, index, subField } = pickerField;
+    if (repeater != null) {
+      const newItems = [...(formData[repeater] || [])];
+      if (newItems[index]) {
+        newItems[index] = { ...newItems[index], [subField]: url };
+        handleChange(repeater, newItems);
+      }
+    } else {
+      handleChange(field, url);
+    }
+    setPickerField(null);
+  };
+
+  const handleMouseDown = () => {
+    const startX = 0;
+    const container = splitRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+
+    const onMove = (e) => {
+      const x = e.clientX - rect.left;
+      const pct = Math.min(Math.max((x / rect.width) * 100, 20), 80);
+      setSplitPercent(pct);
+    };
+
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  };
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -159,6 +393,11 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
             </div>
           </div>
         )}
+
+        {/* Fallback preview dinámico para cualquier widget */}
+        {!["hero","accordion","products","testimonials","banner","contact_form"].includes(widget?.id) && (
+          <DynamicPreview fieldsSchema={widget?.fieldsSchema || widget?.fields} formData={formData} widgetName={widget?.name} />
+        )}
       </div>
     );
   };
@@ -188,12 +427,12 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
         </div>
       </div>
 
-      {/* Layout: Editor + Preview */}
-      <div className="flex-1 overflow-hidden flex">
+      {/* Layout: Editor + Preview con divider ajustable */}
+      <div ref={splitRef} className="flex-1 overflow-hidden flex">
         {/* Panel izquierdo: Editor de campos */}
-        <div className="w-1/2 overflow-y-auto p-4 border-r border-gray-200 dark:border-gray-700">
+        <div className="overflow-y-auto p-4 border-r border-gray-200 dark:border-gray-700" style={{ width: `${splitPercent}%` }}>
           <div className="space-y-4">
-            {widget?.fields?.map(field => (
+            {(widget?.fieldsSchema || widget?.fields)?.map((field, fi) => (
               <div key={field.name}>
                 <label className="label text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 block">
                   {field.label}
@@ -202,21 +441,114 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
                   <div className="space-y-2">
                     {Array.isArray(formData[field.name]) && formData[field.name].map((item, idx) => (
                       <div key={idx} className="border rounded-lg p-3 bg-gray-50 dark:bg-gray-800">
-                        {Object.keys(item).map(key => (
-                          <div key={key} className="mb-2">
-                            <label className="text-xs text-gray-500 capitalize mb-1 block">{key}</label>
-                            <input
-                              type="text"
-                              value={item[key]}
-                              onChange={(e) => {
-                                const newItems = [...formData[field.name]];
-                                newItems[idx][key] = e.target.value;
-                                handleChange(field.name, newItems);
-                              }}
-                              className="input text-sm"
-                            />
-                          </div>
-                        ))}
+                        {getSubFields(field).length > 0 ? (
+                          getSubFields(field).map(sf => (
+                            <div key={sf.name} className="mb-2">
+                              <label className="text-xs text-gray-500 capitalize mb-1 block">{sf.label || sf.name}</label>
+                              {sf.type === "image" ? (
+                                <div className="space-y-1">
+                                  {item[sf.name] && (
+                                    <div
+                                      className="relative group cursor-pointer"
+                                      onClick={() => setPickerField({ field: field.name, repeater: field.name, index: idx, subField: sf.name })}
+                                    >
+                                      <img src={item[sf.name]} alt="" className="w-full h-16 object-cover rounded" />
+                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                        <span className="text-white text-[10px] font-medium">Cambiar</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex gap-1">
+                                    <input
+                                      type="text"
+                                      value={item[sf.name] ?? ""}
+                                      onChange={(e) => {
+                                        const newItems = [...formData[field.name]];
+                                        newItems[idx][sf.name] = e.target.value;
+                                        handleChange(field.name, newItems);
+                                      }}
+                                      className="flex-1 input text-sm"
+                                      placeholder="URL"
+                                    />
+                                    <button
+                                      onClick={() => setPickerField({ field: field.name, repeater: field.name, index: idx, subField: sf.name })}
+                                      className="btn-secondary p-1.5 text-xs"
+                                      title="Seleccionar imagen"
+                                    >
+                                      <Image size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={item[sf.name] ?? ""}
+                                  onChange={(e) => {
+                                    const newItems = [...formData[field.name]];
+                                    newItems[idx][sf.name] = e.target.value;
+                                    handleChange(field.name, newItems);
+                                  }}
+                                  className="input text-sm"
+                                />
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          Object.keys(item).map(key => {
+                            const isImageField = /^image|img|photo|foto|imagen|picture|slide|banner|background|bg|icon|logo|thumbnail|preview|portada$/i.test(key);
+                            return (
+                            <div key={key} className="mb-2">
+                              <label className="text-xs text-gray-500 capitalize mb-1 block">{key}</label>
+                              {isImageField ? (
+                                <div className="space-y-1">
+                                  {item[key] && (
+                                    <div
+                                      className="relative group cursor-pointer"
+                                      onClick={() => setPickerField({ field: field.name, repeater: field.name, index: idx, subField: key })}
+                                    >
+                                      <img src={item[key]} alt="" className="w-full h-16 object-cover rounded" />
+                                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded">
+                                        <span className="text-white text-[10px] font-medium">Cambiar</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                  <div className="flex gap-1">
+                                    <input
+                                      type="text"
+                                      value={item[key]}
+                                      onChange={(e) => {
+                                        const newItems = [...formData[field.name]];
+                                        newItems[idx][key] = e.target.value;
+                                        handleChange(field.name, newItems);
+                                      }}
+                                      className="flex-1 input text-sm"
+                                      placeholder="URL"
+                                    />
+                                    <button
+                                      onClick={() => setPickerField({ field: field.name, repeater: field.name, index: idx, subField: key })}
+                                      className="btn-secondary p-1.5 text-xs"
+                                      title="Seleccionar imagen"
+                                    >
+                                      <Image size={14} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  value={item[key]}
+                                  onChange={(e) => {
+                                    const newItems = [...formData[field.name]];
+                                    newItems[idx][key] = e.target.value;
+                                    handleChange(field.name, newItems);
+                                  }}
+                                  className="input text-sm"
+                                />
+                              )}
+                            </div>
+                            );
+                          })
+                        )}
                         <button
                           onClick={() => handleChange(field.name, formData[field.name].filter((_, i) => i !== idx))}
                           className="text-xs text-red-500 hover:text-red-700 mt-2"
@@ -226,7 +558,7 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
                       </div>
                     ))}
                     <button
-                      onClick={() => handleChange(field.name, [...(formData[field.name] || []), {}])}
+                      onClick={() => handleChange(field.name, [...(formData[field.name] || []), makeEmptyRepeaterItem(field)])}
                       className="text-xs text-primary-600 hover:text-primary-700"
                     >
                       + Agregar {field.label.slice(0, -1).toLowerCase()}
@@ -266,8 +598,25 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
                 ) : field.type === "image" ? (
                   <div className="space-y-2">
                     {formData[field.name] && (
-                      <img src={formData[field.name]} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
+                      <div
+                        className="relative group cursor-pointer"
+                        onClick={() => setPickerField({ field: field.name })}
+                      >
+                        <img src={formData[field.name]} alt="Preview" className="w-full h-24 object-cover rounded-lg" />
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                          <span className="text-white text-xs font-medium">Click para cambiar</span>
+                        </div>
+                      </div>
                     )}
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setPickerField({ field: field.name })}
+                        className="btn-secondary text-sm py-1.5 px-3 flex items-center gap-2"
+                      >
+                        <Image size={14} />
+                        {formData[field.name] ? "Cambiar imagen" : "Seleccionar imagen"}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={formData[field.name] || field.default}
@@ -305,41 +654,65 @@ export default function WidgetEditor({ widget, initialData, onSave, onCancel, ca
           </div>
         </div>
 
+        {/* Divider arrastrable */}
+        <div
+          className="flex-shrink-0 w-1.5 cursor-col-resize hover:bg-primary-400/50 active:bg-primary-500 bg-transparent transition-colors relative z-10 group"
+          onMouseDown={handleMouseDown}
+        >
+          <div className="absolute inset-y-0 -left-1 -right-1" />
+          <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-0.5 bg-gray-300 dark:bg-gray-600 group-hover:bg-primary-400 group-active:bg-primary-500 transition-colors" />
+        </div>
+
         {/* Panel derecho: Vista previa */}
-        <div className="w-1/2 flex flex-col bg-gray-50 dark:bg-gray-800">
+        <div className="flex flex-col bg-gray-50 dark:bg-gray-800" style={{ flex: 1, minWidth: 0 }}>
           <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-            <div className="flex items-center gap-1">
-              <Eye size={14} className="text-gray-500" />
-              <span className="text-xs font-medium text-gray-600">Vista previa</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
+                <button
+                  onClick={() => setPreviewMode("desktop")}
+                  className={`p-1.5 rounded transition-colors ${previewMode === "desktop" ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600" : "text-gray-400 hover:text-gray-600"}`}
+                  title="Escritorio"
+                >
+                  <Monitor size={14} />
+                </button>
+                <button
+                  onClick={() => setPreviewMode("tablet")}
+                  className={`p-1.5 rounded transition-colors ${previewMode === "tablet" ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600" : "text-gray-400 hover:text-gray-600"}`}
+                  title="Tablet"
+                >
+                  <Tablet size={14} />
+                </button>
+                <button
+                  onClick={() => setPreviewMode("mobile")}
+                  className={`p-1.5 rounded transition-colors ${previewMode === "mobile" ? "bg-white dark:bg-gray-700 shadow-sm text-primary-600" : "text-gray-400 hover:text-gray-600"}`}
+                  title="Móvil"
+                >
+                  <Smartphone size={14} />
+                </button>
+              </div>
+              <Eye size={14} className="text-gray-400" />
+              <span className="text-xs font-medium text-gray-500">Preview</span>
             </div>
-            <div className="flex gap-1">
-              <button
-                onClick={() => setPreviewMode("mobile")}
-                className={`p-1.5 rounded ${previewMode === "mobile" ? "bg-primary-100 text-primary-600" : "text-gray-400 hover:bg-gray-100"}`}
-                title="Vista móvil"
-              >
-                <Smartphone size={14} />
+            {widget?.bundleUrl && (
+              <button onClick={() => setPreviewKey(k => k + 1)} className="btn-ghost p-1.5 rounded-lg text-xs text-gray-400 hover:text-primary-600">
+                Recargar
               </button>
-              <button
-                onClick={() => setPreviewMode("tablet")}
-                className={`p-1.5 rounded ${previewMode === "tablet" ? "bg-primary-100 text-primary-600" : "text-gray-400 hover:bg-gray-100"}`}
-                title="Vista tablet"
-              >
-                <Tablet size={14} />
-              </button>
-              <button
-                onClick={() => setPreviewMode("desktop")}
-                className={`p-1.5 rounded ${previewMode === "desktop" ? "bg-primary-100 text-primary-600" : "text-gray-400 hover:bg-gray-100"}`}
-                title="Vista escritorio"
-              >
-                <Monitor size={14} />
-              </button>
-            </div>
+            )}
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            {renderPreview()}
+          <div className="flex-1 overflow-hidden p-0">
+            {widget?.bundleUrl ? (
+              <LivePreview key={previewKey} widget={widget} formData={formData} device={previewMode} />
+            ) : (
+              <div className="p-4 overflow-y-auto h-full">{renderPreview()}</div>
+            )}
           </div>
         </div>
+        {pickerField && (
+          <ImagePickerModal
+            onSelect={handleImageSelect}
+            onClose={() => setPickerField(null)}
+          />
+        )}
       </div>
     </div>
   );

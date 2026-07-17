@@ -33,7 +33,7 @@ const handle = async (e) => {
           <div className="w-12 h-12 rounded-2xl bg-primary-600 flex items-center justify-center mb-3 shadow-lg shadow-primary-500/20">
             <Zap size={22} className="text-white" />
           </div>
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">EcomAdmin</h1>
+          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Keku Store</h1>
           <p className="text-sm text-gray-500 mt-1">Inicia sesión en tu panel</p>
         </div>
 

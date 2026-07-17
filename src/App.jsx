@@ -3,6 +3,7 @@ import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "sileo";
 
 import Layout from "./components/layout/Layout.jsx";
+import SuperAdminLayout from "./pages/super-admin/SuperAdminLayout.jsx";
 import Dashboard from "./pages/dashboard/Dashboard.jsx";
 import Products from "./pages/products/Products.jsx";
 import ProductForm from "./pages/products/ProductForm.jsx";
@@ -28,6 +29,9 @@ import Reports from "./pages/reports/Reports.jsx";
 import MapView from "./pages/map/MapView.jsx";
 import Team from "./pages/settings/Team.jsx";
 import TeamMember from "./pages/settings/TeamMember.jsx";
+import SuperAdminDashboard from "./pages/super-admin/Dashboard.jsx";
+import SuperAdminWidgets from "./pages/super-admin/WidgetManager.jsx";
+import SuperAdminStores from "./pages/super-admin/Stores.jsx";
 import { applyColor } from "./lib/utils.js";
 import { initSounds } from "./lib/sounds.js";
 
@@ -69,6 +73,9 @@ if (!auth) {
   }} />;
 }
 
+const isSuperAdmin = user?.role === "super_admin";
+const LayoutComponent = isSuperAdmin ? SuperAdminLayout : Layout;
+
   return (
     <>
       <Toaster
@@ -78,7 +85,7 @@ if (!auth) {
     styles: { description: "text-gray-400 text-center font-bold" },
   } : undefined}
 />
-    <Layout 
+    <LayoutComponent 
     dark={dark} 
     onToggleDark={() => setDark(!dark)} 
     onLogout={() => {
@@ -90,39 +97,50 @@ if (!auth) {
 }}>
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/products/new" element={<ProductForm />} />
-          <Route path="/products/:id/edit" element={<ProductForm />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/orders/:id" element={<OrderDetail />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/coupons" element={<Coupons />} />
-          <Route path="/pages" element={<CmsPages />} />
-          <Route path="/media" element={<Media />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/invoices" element={<Invoices />} />
-          <Route path="/invoices/:id" element={<InvoiceDetail />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/tickets/:id" element={<TicketDetail />} />
-          <Route path="/shipping" element={<Shipping />} />
-          <Route path="/map" element={<MapView />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/settings/team" element={<Team />} />
-          <Route path="/settings/team/:id" element={<TeamMember />} />
-          <Route path="/settings/transportation" element={<ShippingTab />} />
-          <Route path="/settings/carrier/:code" element={<CarrierConfig />} />
-          <Route path="/products/:id/stats" element={<ProductStats />} />
-          <Route path="/calendar" element={<Calendar />} />
-          <Route path="/customers/:id" element={<CustomerDetail />} />
-          <Route path="/tickets/new" element={<TicketForm />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          {isSuperAdmin ? (
+            <>
+              <Route path="/" element={<Navigate to="/super-admin/dashboard" replace />} />
+              <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+              <Route path="/super-admin/widgets" element={<SuperAdminWidgets />} />
+              <Route path="/super-admin/stores" element={<SuperAdminStores />} />
+              <Route path="*" element={<Navigate to="/super-admin/dashboard" replace />} />
+            </>
+          ) : (
+            <>
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/products" element={<Products />} />
+              <Route path="/products/new" element={<ProductForm />} />
+              <Route path="/products/:id/edit" element={<ProductForm />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/orders" element={<Orders />} />
+              <Route path="/orders/:id" element={<OrderDetail />} />
+              <Route path="/customers" element={<Customers />} />
+              <Route path="/coupons" element={<Coupons />} />
+              <Route path="/pages" element={<CmsPages />} />
+              <Route path="/media" element={<Media />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/invoices" element={<Invoices />} />
+              <Route path="/invoices/:id" element={<InvoiceDetail />} />
+              <Route path="/reports" element={<Reports />} />
+              <Route path="/tickets" element={<Tickets />} />
+              <Route path="/tickets/:id" element={<TicketDetail />} />
+              <Route path="/shipping" element={<Shipping />} />
+              <Route path="/map" element={<MapView />} />
+              <Route path="/settings/team" element={<Team />} />
+              <Route path="/settings/team/:id" element={<TeamMember />} />
+              <Route path="/settings/transportation" element={<ShippingTab />} />
+              <Route path="/settings/carrier/:code" element={<CarrierConfig />} />
+              <Route path="/products/:id/stats" element={<ProductStats />} />
+              <Route path="/calendar" element={<Calendar />} />
+              <Route path="/customers/:id" element={<CustomerDetail />} />
+              <Route path="/tickets/new" element={<TicketForm />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </>
+          )}
         </Routes>
       </Suspense>
-    </Layout>
+    </LayoutComponent>
     </>
   );
 }

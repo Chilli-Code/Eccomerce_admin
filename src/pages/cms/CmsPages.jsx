@@ -1,9 +1,11 @@
-import { useState } from "react";
-import { Plus, Edit2, Trash2, FileText, ArrowLeft, Save, Grid, Layout, X } from "../../lib/icons.js";
+import { useState, useEffect } from "react";
+import { Plus, Edit2, Trash2, FileText, ArrowLeft, Save, Grid, Layout, X, Loader, ChevronLeft, ChevronRight } from "../../lib/icons.js";
 import { cmsPages } from "../../data/mock.js";
 import { StatusBadge } from "../../components/ui/index.jsx";
 import PageBuilder from "./PageBuilder.jsx";
 import WidgetEditor from "./WidgetEditor.jsx";
+import { api } from "../../lib/api.js";
+import { sileo as toast } from "sileo";
 
 export default function CmsPages() {
   const [pages, setPages] = useState(cmsPages);
@@ -14,7 +16,11 @@ export default function CmsPages() {
   const [editingWidget, setEditingWidget] = useState(null);
   const [widgetData, setWidgetData] = useState(null);
   const [categories, setCategories] = useState([]);
-  const [viewMode, setViewMode] = useState("pages"); // "pages" o "widgets"
+  const [viewMode, setViewMode] = useState("pages");
+  const [availableWidgets, setAvailableWidgets] = useState([]);
+  const [storeWidgetMap, setStoreWidgetMap] = useState({});
+  const [widgetsLoading, setWidgetsLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -38,12 +44,68 @@ export default function CmsPages() {
     setEditingPage(null);
   };
 
-  const handleSaveWidget = (data) => {
-    console.log("Widget guardado:", editingWidget, data);
+  const handleToggleWidget = async (e, w) => {
+    e.stopPropagation();
+    const storeInfo = storeWidgetMap[w.id];
+    try {
+      if (storeInfo) {
+        const newStatus = storeInfo.status === "active" ? "inactive" : "active";
+        await api.storeWidgets.update(storeInfo.id, { status: newStatus });
+        setStoreWidgetMap(prev => ({ ...prev, [w.id]: { ...prev[w.id], status: newStatus } }));
+        toast.success(newStatus === "active" ? "Widget activado" : "Widget desactivado");
+      } else {
+        const result = await api.storeWidgets.create({
+          widgetId: w.id,
+          content: {},
+          order: 0,
+          status: "active",
+        });
+        setStoreWidgetMap(prev => ({ ...prev, [w.id]: result }));
+        toast.success("Widget activado");
+      }
+    } catch (err) {
+      toast.error("Error al cambiar estado: " + err.message);
+    }
+  };
+
+  const handleSaveWidget = async (data) => {
+    try {
+      if (editingWidget?.storeWidgetId) {
+        const updated = await api.storeWidgets.update(editingWidget.storeWidgetId, { content: data });
+        setStoreWidgetMap(prev => ({ ...prev, [editingWidget.id]: updated }));
+      } else {
+        const result = await api.storeWidgets.create({
+          widgetId: editingWidget.id,
+          content: data,
+          order: 0,
+        });
+        setStoreWidgetMap(prev => ({ ...prev, [editingWidget.id]: result }));
+      }
+      toast.success("Widget guardado");
+    } catch (e) {
+      toast.error("Error al guardar: " + e.message);
+    }
     setEditingWidget(null);
     setWidgetData(null);
     setViewMode("pages");
   };
+
+  // Cargar widgets disponibles + storeWidgets
+  useEffect(() => {
+    if (viewMode === "widgets") {
+      setWidgetsLoading(true);
+      Promise.all([
+        api.widgets.list(),
+        api.storeWidgets.list().catch(() => [])
+      ]).then(([widgets, storeWidgets]) => {
+        setAvailableWidgets(widgets.filter(w => w.status === "published"));
+        const map = {};
+        for (const sw of storeWidgets) map[sw.widgetId] = sw;
+        setStoreWidgetMap(map);
+      }).catch(() => {})
+      .finally(() => setWidgetsLoading(false));
+    }
+  }, [viewMode]);
 
   // Vista editor de página
   if (editingPage !== null) {
@@ -187,118 +249,90 @@ export default function CmsPages() {
         </div>
       )}
 
-      {/* Vista de Widgets - SIN MODAL, COMPONENTE GRANDE */}
+      {/* Vista de Widgets con sidebar colapsable */}
       {viewMode === "widgets" && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 h-[calc(100vh-200px)]">
-          {/* Panel izquierdo: Lista de widgets */}
-          <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-900 flex flex-col">
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Widgets disponibles</h3>
-              <p className="text-xs text-gray-500 mt-1">Haz clic para editar</p>
-            </div>
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {/* Hero Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "hero", name: "Hero / Banner principal" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Hero / Banner</h4>
-                    <p className="text-xs text-gray-400">Sección principal con título, imagen y botón</p>
-                  </div>
+        <div className="flex gap-5 h-[calc(100vh-200px)]">
+          {/* Panel izquierdo: Lista de widgets (colapsable) */}
+          {sidebarOpen && (
+            <div className="w-72 flex-shrink-0 border rounded-xl overflow-hidden bg-white dark:bg-gray-900 flex flex-col transition-all duration-300">
+              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Widgets</h3>
+                  <p className="text-xs text-gray-500 mt-1">{availableWidgets.length} disponibles</p>
                 </div>
+                <button onClick={() => setSidebarOpen(false)} className="p-1 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400" title="Ocultar panel">
+                  <ChevronLeft size={16} />
+                </button>
               </div>
-
-              {/* Accordion Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "accordion", name: "Acordeón / FAQ" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
+              <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                {widgetsLoading ? (
+                  <div className="flex items-center justify-center py-12 text-gray-400">
+                    <Loader size={16} className="animate-spin mr-2" /> Cargando...
                   </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Acordeón / FAQ</h4>
-                    <p className="text-xs text-gray-400">Preguntas frecuentes con despliegue</p>
+                ) : availableWidgets.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400">
+                    <p className="text-sm">No hay widgets publicados</p>
+                    <p className="text-xs mt-1">El Super Admin debe publicar widgets primero</p>
                   </div>
-                </div>
-              </div>
-
-              {/* Products Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "products", name: "Productos destacados" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
+                ) : availableWidgets.map(w => {
+                  const storeInfo = storeWidgetMap[w.id];
+                  const isActive = storeInfo?.status === "active";
+                  return (
+                  <div
+                    key={w.id}
+                    onClick={() => {
+                      const match = storeWidgetMap[w.id];
+                      setWidgetData(match ? match.content : null);
+                      setEditingWidget(match ? { ...w, storeWidgetId: match.id } : w);
+                    }}
+                    className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                        <Layout size={18} className="text-primary-600" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">{w.name}</h4>
+                          <button
+                            onClick={(e) => handleToggleWidget(e, w)}
+                            className={`flex-shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+                              isActive
+                                ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                                : "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400"
+                            }`}
+                            title={isActive ? "Desactivar widget" : "Activar widget"}
+                          >
+                            {isActive ? "Activo" : "Inactivo"}
+                          </button>
+                        </div>
+                        {w.description && <p className="text-xs text-gray-400 truncate">{w.description}</p>}
+                        <span className="text-[10px] text-gray-400 mt-0.5 block">{w.category} · {w.version}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Productos destacados</h4>
-                    <p className="text-xs text-gray-400">Muestra productos seleccionados</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Testimonials Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "testimonials", name: "Testimonios" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Testimonios</h4>
-                    <p className="text-xs text-gray-400">Opiniones de clientes</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Banner Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "banner", name: "Banner promocional" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Banner promocional</h4>
-                    <p className="text-xs text-gray-400">Imagen con texto y botón</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Form Widget */}
-              <div
-                onClick={() => setEditingWidget({ id: "contact_form", name: "Formulario de contacto" })}
-                className="p-3 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:border-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-all"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                    <Layout size={18} className="text-primary-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white">Formulario de contacto</h4>
-                    <p className="text-xs text-gray-400">Formulario para contactar</p>
-                  </div>
-                </div>
+                  );
+                })}
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Panel derecho: Editor del widget (grande) */}
-          <div className="lg:col-span-3 border rounded-xl overflow-hidden bg-white dark:bg-gray-900">
+          {/* Botón para reabrir sidebar cuando está cerrada */}
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex-shrink-0 border rounded-lg px-1 py-6 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-400 self-start mt-4 transition-all"
+              title="Mostrar widgets"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
+
+          {/* Panel derecho: Editor del widget */}
+          <div className="flex-1 min-w-0 border rounded-xl overflow-hidden bg-white dark:bg-gray-900">
             {editingWidget ? (
               <WidgetEditor
+                key={editingWidget?.id + '-' + (widgetData ? Object.keys(widgetData).join(',') : 'new')}
                 widget={editingWidget}
                 initialData={widgetData}
                 onSave={handleSaveWidget}

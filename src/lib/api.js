@@ -149,6 +149,40 @@ settings: {
   }),
 },
 
+// ── Widgets ──────────────────────────────
+widgets: {
+  list:     ()                => request("/widgets"),
+  get:      (id)              => request(`/widgets/${id}`),
+  create:   (data)            => request("/widgets/upload", { method: "POST", body: data, headers: {} }),
+  update:   (id, data)        => request(`/widgets/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete:   (id)              => request(`/widgets/${id}`, { method: "DELETE" }),
+  uploadBundle: (id, file)    => {
+    const form = new FormData();
+    form.append("file", file);
+    return fetch(`${BASE}/widgets/${id}/bundle`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+      body: form,
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error); return d; });
+  },
+  uploadNew: (metadata, file) => {
+    const form = new FormData();
+    for (const [k, v] of Object.entries(metadata)) form.append(k, v);
+    if (file) form.append("file", file);
+    return fetch(`${BASE}/widgets/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${localStorage.getItem("admin_token")}` },
+      body: form,
+    }).then(async r => { const d = await r.json(); if (!r.ok) throw new Error(d.error || JSON.stringify(d)); return d; });
+  },
+},
+storeWidgets: {
+  list:     ()                => request("/store-widgets"),
+  create:   (data)            => request("/store-widgets", { method: "POST", body: JSON.stringify(data) }),
+  update:   (id, data)        => request(`/store-widgets/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  delete:   (id)              => request(`/store-widgets/${id}`, { method: "DELETE" }),
+},
+
 // ── Coupons ───────────────────────────────
 coupons: {
   list:     ()               => request("/coupons"),

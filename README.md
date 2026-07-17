@@ -46,6 +46,7 @@ Panel de administración profesional multi-tienda para ecommerce. Una aplicació
 | **React Simple Maps** | 3.0.0 | Mapas estáticos |
 | **Sileo** | - | Notificaciones toast |
 | **Cuelume** | 0.1.2 | Sonidos de notificaciones |
+| **Cloudinary** | - | Gestión de imágenes (almacenamiento, CDN, transforms) |
 
 ### Tipografía
 
@@ -75,14 +76,20 @@ eccomerce_admin/
 │   │   └── mock.js           # Datos de prueba para desarrollo
 │   ├── lib/
 │   │   ├── api.js             # Cliente API centralizado
+│   │   ├── cloudinary.js      # Cloudinary: subida, listado, carpetas, borrado
 │   │   ├── icons.js           # Configuración de íconos
 │   │   ├── notifications.js   # Sistema de notificaciones toast con sonidos
 │   │   └── sounds.js          # Utilidad de sonidos (Cuelume)
+│   └── cloudinary.js           # Cliente Cloudinary (subida, listado, carpetas)
 │   ├── pages/                # Todas las páginas de la aplicación
 │   │   ├── Login.jsx
 │   │   ├── calendar/
 │   │   ├── categories/
-│   │   ├── cms/
+│   │   ├── cms/               # Gestor de contenido, widgets, page builder
+│   │   │   ├── CmsPages.jsx
+│   │   │   ├── ImagePickerModal.jsx  # Selector de imágenes Cloudinary con carpetas
+│   │   │   ├── PageBuilder.jsx
+│   │   │   └── WidgetEditor.jsx      # Editor de widgets con preview y picker Cloudinary
 │   │   ├── coupons/
 │   │   ├── customers/
 │   │   ├── dashboard/
@@ -103,7 +110,7 @@ eccomerce_admin/
 │   └── cuelume-patch.mjs     # Postinstall: parchea exports de Cuelume
 ├── tailwind.config.js         # Configuración de Tailwind
 ├── postcss.config.js
-└── vite.config.js             # CSP, proxy y plugins
+└── vite.config.js             # CSP, proxy widgets, Cloudinary Admin API, plugins
 ```
 
 ---
@@ -503,15 +510,33 @@ Gestión de códigos de descuento.
 
 ### Página: CmsPages (`/pages`)
 
-Listado de páginas estáticas del sitio.
+Listado de páginas estáticas del sitio y editor de widgets dinámicos.
 
-**Funcionalidades:**
-- Crear nueva página
-- Editar página existente
-- Eliminar página
-- Publicar/despublicar
+**Pestañas:**
+- **Páginas**: CRUD de páginas estáticas con editor visual GrapesJS
+- **Widgets**: Lista de widgets publicados desde el Super Admin, con editor de contenido en vivo
 
-**Tabla de Páginas:**
+**Editor de Widgets (WidgetEditor):**
+- Editor en tiempo real con preview en vivo (iframe con bundle JS)
+- Preview responsive: Desktop, Tablet, Mobile
+- Panel dividido ajustable (editor + preview)
+- **Campos de imagen con selector Cloudinary**: cada campo `type: "image"` tiene:
+  - Preview de imagen con overlay "Click para cambiar"
+  - Botón "Seleccionar imagen" que abre el ImagePickerModal
+  - Navegación por carpetas dentro del modal
+  - Subida directa a Cloudinary desde el modal
+  - Input de URL manual como fallback
+- Soporte para campos tipo: text, image, repeater, select, checkbox, color, url, email, number, category_select
+- Los repeaters detectan automáticamente campos de imagen por nombre (image, img, photo, foto, slide, etc.)
+
+**ImagePickerModal:**
+- Navegación por carpetas de Cloudinary con breadcrumb
+- Vista en grid de imágenes
+- Búsqueda por nombre de archivo
+- Subida de imágenes con upload a carpeta actual
+- Selección con un clic
+
+**Funcionalidades de Páginas:**
 | Columna | Descripción |
 |---------|-------------|
 | Título | Nombre de la página |
@@ -555,15 +580,20 @@ Editor visual de páginas con GrapesJS.
 
 ### Página: Media (`/media`)
 
-Biblioteca de archivos multimedia.
+Biblioteca de archivos multimedia con integración Cloudinary.
 
 **Vistas:**
 - **Grid**: Visualización en tarjetas con preview
 - **List**: Vista detallada en tabla
 
+**Navegación por Carpetas:**
+- Breadcrumb jerárquico (Raíz → carpeta → subcarpeta)
+- Grid de carpetas con íconos para navegar
+- La subida de archivos se hace a la carpeta actual
+
 **Funcionalidades:**
-- Subida por drag & drop
-- Subida por botón tradicional
+- Subida por drag & drop o botón tradicional
+- Integración con Cloudinary (almacenamiento y CDN)
 - Preview de archivos
 - Eliminar archivos
 - Toggle entre vistas
@@ -957,7 +987,13 @@ VITE_API_URL=http://localhost:3000/v1
 
 # Entorno
 VITE_ENV=development
+
+# Cloudinary (para subida directa desde el frontend)
+VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
+VITE_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
 ```
+
+> **Nota:** Las credenciales de la Admin API de Cloudinary (API Key y Secret) se configuran en `vite.config.js` para el proxy `/cloudinary-admin`. No es necesario configurarlas como variables de entorno a menos que se despliegue en producción.
 
 ---
 
