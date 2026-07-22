@@ -4,6 +4,7 @@ import { cmsPages } from "../../data/mock.js";
 import { StatusBadge } from "../../components/ui/index.jsx";
 import PageBuilder from "./PageBuilder.jsx";
 import WidgetEditor from "./WidgetEditor.jsx";
+import SiteContentEditor from "./SiteContentEditor.jsx";
 import { api } from "../../lib/api.js";
 import { sileo as toast } from "sileo";
 
@@ -200,7 +201,17 @@ export default function CmsPages() {
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             }`}
           >
-            📄 Páginas
+            Páginas
+          </button>
+          <button
+            onClick={() => setViewMode("content")}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors ${
+              viewMode === "content"
+                ? "bg-primary-600 text-white"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            <FileText size={14} className="inline mr-1.5" />Contenido
           </button>
           <button
             onClick={() => setViewMode("widgets")}
@@ -210,7 +221,7 @@ export default function CmsPages() {
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             }`}
           >
-            🧩 Widgets
+            Widgets
           </button>
         </div>
         {viewMode === "pages" && (
@@ -246,6 +257,13 @@ export default function CmsPages() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Vista de Contenido */}
+      {viewMode === "content" && (
+        <div className="border rounded-xl overflow-hidden bg-white dark:bg-gray-900 p-5">
+          <SiteContentEditor />
         </div>
       )}
 
