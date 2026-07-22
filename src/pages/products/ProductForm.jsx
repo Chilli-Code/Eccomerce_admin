@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Plus, X, Upload } from "../../lib/icons.js";
+import { ArrowLeft, Plus, X, Upload, Image } from "../../lib/icons.js";
 import clsx from "clsx";
 import { notify } from "../../lib/notifications.js";
 import { api } from "../../lib/api.js";
 import Loader from "../../components/ui/Loader.jsx";
 import { FormCard, FormField, PriceInput } from "../../components/ui/FormCard.jsx";
 import { uploadImages } from "../../lib/cloudinary.js";
+import ImagePickerModal from "../cms/ImagePickerModal.jsx";
 import RichTextEditor from "../../components/ui/RichTextEditor.jsx";
 import DOMPurify from 'dompurify'; // 👈 IMPORTAR DOMPurify
 
@@ -51,6 +52,7 @@ export default function ProductForm() {
   const [variants,   setVariants]   = useState([]);
   const [images,     setImages]     = useState([]);
   const [uploading,  setUploading]  = useState(false);
+  const [showPicker, setShowPicker] = useState(false);
   const [shippingPriceFocused, setShippingPriceFocused] = useState(false);
   const fmtCOP = (v) => v ? new Intl.NumberFormat("es-CO", { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(Number(v)) : v;
 
@@ -386,7 +388,17 @@ const handleSave = async () => {
                 : <><Upload size={24} className="mx-auto mb-2 text-gray-300" /><p className="text-sm text-gray-500">Arrastra o <span className="text-primary-600">busca archivos</span></p><p className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP · Cloudinary</p></>
               }
             </label>
+            {!uploading && (
+              <button type="button" onClick={() => setShowPicker(true)}
+                className="mt-2 w-full text-sm text-primary-600 hover:text-primary-700 font-medium py-2 border border-dashed border-primary-300 rounded-xl hover:bg-primary-50 dark:border-primary-700 dark:hover:bg-primary-900/20 transition-colors">
+                <Image size={16} className="inline mr-1" />Seleccionar desde Cloudinary
+              </button>
+            )}
           </FormCard>
+          {showPicker && <ImagePickerModal
+            onSelect={(url) => { setImages(prev => [...prev, url]); setShowPicker(false); }}
+            onClose={() => setShowPicker(false)}
+          />}
 
           {/* Variantes */}
           <FormCard>

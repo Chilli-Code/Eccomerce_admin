@@ -3,11 +3,93 @@ import { Upload, Edit2, Trash2, Layout, Globe, X, Check, Loader, Download } from
 import { api } from "../../lib/api.js";
 import { sileo as toast } from "sileo";
 
+const DEFAULT_WIDGETS = [
+  {
+    name: "Banner Header",
+    slug: "header-banner",
+    description: "Barra promocional superior y redes sociales del menú móvil",
+    category: "Header",
+    version: "v1.0",
+    fieldsSchema: [
+      { name: "promoBanner", label: "Texto del banner", type: "text" },
+      { name: "socialLinks", label: "Redes sociales", type: "repeater", fields: [
+        { name: "name", label: "Nombre", type: "text" },
+        { name: "url", label: "URL", type: "url" },
+      ]},
+    ],
+  },
+  {
+    name: "Navegación",
+    slug: "site-navigation",
+    description: "Menú principal de navegación de la tienda",
+    category: "Header",
+    version: "v1.0",
+    fieldsSchema: [
+      { name: "navLinks", label: "Enlaces del menú", type: "repeater", fields: [
+        { name: "name", label: "Nombre", type: "text" },
+        { name: "href", label: "Ruta", type: "url" },
+        { name: "subMenu", label: "Submenú (separar con coma)", type: "text" },
+      ]},
+    ],
+  },
+  {
+    name: "Footer",
+    slug: "site-footer",
+    description: "Pie de página: marca, enlaces, redes sociales, legal",
+    category: "Contenido",
+    version: "v1.0",
+    fieldsSchema: [
+      { name: "brandName", label: "Nombre de la marca", type: "text" },
+      { name: "tagline", label: "Tagline", type: "text" },
+      { name: "copyright", label: "Copyright", type: "text" },
+      { name: "groups", label: "Grupos de enlaces", type: "repeater", fields: [
+        { name: "title", label: "Título del grupo", type: "text" },
+        { name: "links", label: "Enlaces (separados con coma)", type: "text" },
+      ]},
+      { name: "socialLinks", label: "Redes sociales", type: "repeater", fields: [
+        { name: "name", label: "Nombre", type: "text" },
+        { name: "url", label: "URL", type: "url" },
+      ]},
+      { name: "brandNames", label: "Marcas (separadas con coma)", type: "text" },
+      { name: "legalLinks", label: "Enlaces legales", type: "repeater", fields: [
+        { name: "name", label: "Nombre", type: "text" },
+        { name: "url", label: "URL", type: "url" },
+      ]},
+    ],
+  },
+  {
+    name: "Tagline",
+    slug: "homepage-tagline",
+    description: "Frase destacada del homepage",
+    category: "Contenido",
+    version: "v1.0",
+    fieldsSchema: [
+      { name: "text", label: "Texto del tagline", type: "text" },
+    ],
+  },
+  {
+    name: "Misión",
+    slug: "homepage-mission",
+    description: "Sección de misión y valores del homepage",
+    category: "Contenido",
+    version: "v1.0",
+    fieldsSchema: [
+      { name: "heading", label: "Título", type: "text" },
+      { name: "image", label: "Imagen", type: "image" },
+      { name: "features", label: "Características", type: "repeater", fields: [
+        { name: "title", label: "Título", type: "text" },
+        { name: "description", label: "Descripción", type: "text" },
+      ]},
+    ],
+  },
+];
+
 export default function WidgetManager() {
   const [widgets, setWidgets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
   const [editWidget, setEditWidget] = useState(null);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchWidgets = async () => {
     try {
@@ -22,6 +104,33 @@ export default function WidgetManager() {
   };
 
   useEffect(() => { fetchWidgets(); }, []);
+
+  const handleSeedDefaults = async () => {
+    if (!confirm("Crear los 5 widgets por defecto? (Header, Navegación, Footer, Tagline, Misión)")) return;
+    setSeeding(true);
+    try {
+      const existing = widgets.map(w => w.slug);
+      let created = 0;
+      for (const w of DEFAULT_WIDGETS) {
+        if (existing.includes(w.slug)) continue;
+        await api.widgets.uploadNew({
+          name: w.name,
+          slug: w.slug,
+          description: w.description,
+          category: w.category,
+          version: w.version,
+          fieldsSchema: JSON.stringify(w.fieldsSchema),
+        });
+        created++;
+      }
+      toast.success(` ${created} widget(s) creado(s) correctamente`);
+      fetchWidgets();
+    } catch (e) {
+      toast.error("Error al crear widgets: " + e.message);
+    } finally {
+      setSeeding(false);
+    }
+  };
 
   const handleDelete = async (w) => {
     if (!confirm(`¿Eliminar "${w.name}"?`)) return;
@@ -63,16 +172,30 @@ export default function WidgetManager() {
     }
   };
 
+  const defaultSlugs = DEFAULT_WIDGETS.map(d => d.slug);
+  const allDefaultsCreated = defaultSlugs.every(slug => widgets.some(w => w.slug === slug));
+
   return (
     <div className="space-y-5">
-      <div className="page-header">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="page-title">Gestión de Widgets</h1>
           <p className="text-sm text-gray-400 mt-0.5">Sube y administra los bundles de componentes para las tiendas</p>
         </div>
-        <button className="btn-primary" onClick={() => { setEditWidget(null); setShowUpload(true); }}>
-          <Upload size={16} /> Subir widget
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {allDefaultsCreated ? (
+            <span className="text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-lg font-medium">
+              Widgets por defecto creados
+            </span>
+          ) : (
+            <button className="btn-secondary" onClick={handleSeedDefaults} disabled={seeding}>
+              {seeding ? <><Loader size={14} className="animate-spin mr-1" /> Creando...</> : "✨ Crear widgets por defecto"}
+            </button>
+          )}
+          <button className="btn-primary" onClick={() => { setEditWidget(null); setShowUpload(true); }}>
+            <Upload size={16} /> Subir widget
+          </button>
+        </div>
       </div>
 
       {showUpload && (
@@ -101,9 +224,16 @@ export default function WidgetManager() {
                 <div className="w-10 h-10 rounded-lg bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center">
                   <Layout size={18} className="text-purple-600 dark:text-purple-400" />
                 </div>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor(w.status)}`}>
-                  {statusLabel(w.status)}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {defaultSlugs.includes(w.slug) && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                      Default
+                    </span>
+                  )}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor(w.status)}`}>
+                    {statusLabel(w.status)}
+                  </span>
+                </div>
               </div>
               <h3 className="text-sm font-semibold text-gray-800 dark:text-white">{w.name}</h3>
               <div className="flex items-center gap-2 mt-1">
