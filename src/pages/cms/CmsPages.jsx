@@ -95,11 +95,12 @@ export default function CmsPages() {
   useEffect(() => {
     if (viewMode === "widgets") {
       setWidgetsLoading(true);
+      const DEFAULT_SLUGS = ["header-banner", "site-navigation", "site-footer", "homepage-tagline", "homepage-mission"];
       Promise.all([
         api.widgets.list(),
         api.storeWidgets.list().catch(() => [])
       ]).then(([widgets, storeWidgets]) => {
-        setAvailableWidgets(widgets.filter(w => w.status === "published"));
+        setAvailableWidgets(widgets.filter(w => w.status === "published" && !DEFAULT_SLUGS.includes(w.slug)));
         const map = {};
         for (const sw of storeWidgets) map[sw.widgetId] = sw;
         setStoreWidgetMap(map);

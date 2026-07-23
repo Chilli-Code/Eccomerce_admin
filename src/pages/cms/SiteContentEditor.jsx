@@ -21,6 +21,16 @@ const DEFAULT_SITE_CONTENT = {
     { name: "CONTACTO", href: "/contact", subMenu: [] },
   ],
   hero: {
+    heading: "EL\nTELÉFONO\nQUE\nMERECES",
+    description: "Dispositivos insignia y accesorios curados, probados por entusiastas. Sin relleno — solo tecnología que vale la pena llevar.",
+    badge: "NUEVA TEMPORADA",
+    ctaText: "VER TODO",
+    verMasText: "Ver más",
+    contactText: "Contáctanos",
+    featureCards: [
+      { img: "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=300&q=70&fm=webp", tag: "#INSIGNIA" },
+      { img: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=300&q=70&fm=webp", tag: "#INALÁMBRICO" },
+    ],
     carouselSlides: [
       { img: "/images/audifonos.png", titulo: "20% OFF en iPhone", subtitulo: "Solo este fin de semana", cta: "Ver oferta", ctaHref: "/ofertas", bg: "#1c1c1e" },
       { img: "/images/tablet.png", titulo: "Nueva temporada Samsung", subtitulo: "Galaxy S24 ya disponible", cta: "Comprar ahora", ctaHref: "/celulares/samsung", bg: "#1a2332" },
@@ -239,8 +249,70 @@ export default function SiteContentEditor() {
         />
       </CollapsibleSection>
 
-      {/* Hero / Carrusel */}
-      <CollapsibleSection title="Hero — Carrusel principal">
+      {/* Hero */}
+      <CollapsibleSection title="Hero — Sección principal" open>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Título principal (una línea por salto)</label>
+            <textarea value={c.hero.heading} onChange={e => update("hero.heading", e.target.value)}
+              className="input resize-none" rows={2} placeholder="Una línea por salto de línea" />
+          </div>
+          <div>
+            <label className="label">Badge</label>
+            <input value={c.hero.badge} onChange={e => update("hero.badge", e.target.value)}
+              className="input" placeholder="NUEVA TEMPORADA" />
+          </div>
+        </div>
+        <div>
+          <label className="label">Descripción</label>
+          <textarea value={c.hero.description} onChange={e => update("hero.description", e.target.value)}
+            className="input resize-none" rows={2} />
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          <div>
+            <label className="label">Texto botón CTA</label>
+            <input value={c.hero.ctaText} onChange={e => update("hero.ctaText", e.target.value)}
+              className="input" placeholder="VER TODO" />
+          </div>
+          <div>
+            <label className="label">Texto "Ver más"</label>
+            <input value={c.hero.verMasText} onChange={e => update("hero.verMasText", e.target.value)}
+              className="input" placeholder="Ver más" />
+          </div>
+          <div>
+            <label className="label">Texto "Contáctanos"</label>
+            <input value={c.hero.contactText} onChange={e => update("hero.contactText", e.target.value)}
+              className="input" placeholder="Contáctanos" />
+          </div>
+        </div>
+
+        <ArrayField
+          label="Tarjetas de producto"
+          items={c.hero.featureCards}
+          onChange={v => update("hero.featureCards", v)}
+          renderItem={(item, i) => (
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <p className="text-[11px] text-gray-400 mb-1">Imagen</p>
+                <div className="flex gap-1">
+                  <input value={item.img || ""} onChange={e => { const s = [...c.hero.featureCards]; s[i] = { ...s[i], img: e.target.value }; update("hero.featureCards", s); }}
+                    className="input text-xs flex-1 font-mono" placeholder="URL de la imagen" />
+                  <button type="button" onClick={() => setShowPicker(`hero.featureCards.${i}.img`)}
+                    className="btn-ghost p-1.5 rounded-lg text-gray-400 hover:text-primary-600 flex-shrink-0">
+                    <Image size={14} />
+                  </button>
+                </div>
+                {item.img && <img src={item.img} className="w-16 h-12 object-cover rounded mt-1 border border-gray-200 dark:border-gray-700" />}
+              </div>
+              <div className="w-32">
+                <label className="label">Etiqueta</label>
+                <input value={item.tag || ""} onChange={e => { const s = [...c.hero.featureCards]; s[i] = { ...s[i], tag: e.target.value }; update("hero.featureCards", s); }}
+                  className="input text-sm" placeholder="#INSIGNIA" />
+              </div>
+            </div>
+          )}
+        />
+
         <ArrayField
           label="Slides del carrusel"
           items={c.hero.carouselSlides}
